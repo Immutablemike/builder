@@ -20,9 +20,6 @@ jobs:
         with:
           node-version: '22'
           
-      - name: Install Python dependencies
-        run: pip install pyyaml jsonschema jinja2
-        
       - name: Generate deterministic codebase from YAML
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -31,14 +28,8 @@ jobs:
           # Install the NEW standalone Copilot CLI
           npm install -g @github/copilot
           
-          # Configure trusted directory for headless operation
-          mkdir -p ~/.copilot
-          echo '{"trusted_folders": ["/github/workspace"]}' > ~/.copilot/config.json
-          
           for f in briefs/*_Stack.yaml; do
             NAME=$(basename "$f" _Stack.yaml)
-            
-            # Use project name from YAML or fallback to filename
             OUT_DIR="${NAME,,}"
             
             # Clean any existing output for fresh generation
@@ -47,23 +38,8 @@ jobs:
             echo "🚀 Generating $OUT_DIR from YAML specification..."
             echo "📖 Processing $(wc -c < "$f") character YAML manifest..."
             
-            # Read YAML specification
-            YAML_SPEC=$(cat "$f")
-            
-            # Execute deterministic generation
-            copilot -p "You are a YAML-to-Codebase Factory. Generate ONLY what is specified in the repo_tree section of this YAML.
-
-YAML SPECIFICATION:
-$YAML_SPEC
-
-DETERMINISTIC RULES:
-1. Read the repo_tree section that shows exact directory/file structure
-2. Generate EXACTLY those directories and files - no additions, no omissions
-3. Create working code based on backend_services, database, and frontend sections
-4. Use specified tech stack: FastAPI + Expo + Supabase + Cloudflare
-5. NO placeholder code, NO TODO comments, NO carryover from previous structures
-
-Generate complete working ToySoldiers platform from YAML specification." --allow-all-tools
+            # Generate using simplified prompt approach
+            copilot -p "You are a YAML-to-Codebase Factory. Read the provided YAML repo_tree section and generate EXACTLY that directory structure with working FastAPI + Expo code. No placeholders, no TODO comments. Generate complete ToySoldiers platform from YAML specification: $(cat "$f")" --allow-all-tools
             
             # Verify and report generation results
             if [ -d "$OUT_DIR" ]; then
