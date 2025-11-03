@@ -18,10 +18,10 @@ jobs:
         run: |
           for f in briefs/*_Stack.yaml; do
             echo "Validating $f"
-            python - <<'PY'
+            python3 -c "
             import sys, yaml, jsonschema
-            spec = yaml.safe_load(open(sys.argv[1]))
-            jsonschema.validate(spec, {"type": "object"})
-            print("✅", sys.argv[1], "valid")
-            PY "$f"
+            spec = yaml.safe_load(open('$f'))
+            jsonschema.validate(spec, {'type': 'object'})
+            print('✅', '$f', 'valid')
+            "
           done
