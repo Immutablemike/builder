@@ -44,12 +44,26 @@ def create_output_dir(name):
 
 
 def main():
-    for brief in BRIEFS.glob("*_Stack.yaml"):
-        name = brief.stem.replace("_Stack", "")
-        spec = validate_manifest(brief)
-        generate_docs(spec, name)
-        out = create_output_dir(name)
-        print(f"🧠 Project folder ready: {out}")
+    import sys
+    if len(sys.argv) > 1:
+        # Process specific file from command line
+        brief_path = pathlib.Path(sys.argv[1])
+        if brief_path.exists():
+            name = brief_path.stem.replace("_Stack", "")
+            spec = validate_manifest(brief_path)
+            generate_docs(spec, name)
+            out = create_output_dir(name)
+            print(f"✅ Processed {brief_path.name}")
+        else:
+            print(f"❌ File not found: {brief_path}")
+    else:
+        # Process all files in briefs directory
+        for brief in BRIEFS.glob("*_Stack.yaml"):
+            name = brief.stem.replace("_Stack", "")
+            spec = validate_manifest(brief)
+            generate_docs(spec, name)
+            out = create_output_dir(name)
+            print(f"🧠 Project folder ready: {out}")
 
 
 if __name__ == "__main__":

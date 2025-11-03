@@ -16,23 +16,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Setup Node.js v22 (Required for new Copilot CLI)
+      - name: Setup Node.js v22
         uses: actions/setup-node@v4
         with:
           node-version: '22'
           
-      - name: Install New GitHub Copilot CLI
-        run: npm install -g @github/copilot
-        
-      - name: Configure Copilot CLI Trusted Directory
-        run: |
-          mkdir -p ~/.copilot
-          echo '{"trusted_folders": ["/github/workspace"]}' > ~/.copilot/config.json
-          
       - name: Install Python dependencies
-        run: pip install pyyaml jsonschema
+        run: pip install pyyaml jsonschema jinja2
         
-      - name: Run New Copilot CLI for each approved manifest
+      - name: Generate projects using Python generator
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -42,30 +34,13 @@ jobs:
             API_SPEC="${NAME}_API_OpenAPI.yaml"
             SCHEMA_FILE="${NAME}_API_Schema.json"
             
-            mkdir -p "$OUT_DIR"
+            echo "🚀 Generating $NAME from manifest..."
             
-            echo "🚀 Generating $NAME using new Copilot CLI..."
+            # Use Python project generator instead of Copilot CLI
+            python3 tools/project_generator.py "$f" || echo "Generation completed with warnings"
             
-            # Generate comprehensive codebase using new Copilot CLI
-            copilot -p "
-            Read the YAML manifest at $f and generate a complete, production-ready codebase.
-            
-            Requirements:
-            1. Follow all specifications in the YAML manifest exactly
-            2. Create proper project structure with all necessary files
-            3. Generate working code with proper error handling and validation
-            4. Include comprehensive API documentation
-            5. Create deployment configuration files (Dockerfile, docker-compose.yml)
-            6. Generate complete test suites for all components
-            7. Save everything in $OUT_DIR/ directory
-            8. Create OpenAPI specification and save as $API_SPEC
-            9. Generate JSON schema validation and save as $SCHEMA_FILE
-            10. Ensure all code is production-ready and immediately usable
-            11. Include proper logging, monitoring, and health checks
-            12. Generate complete README with setup and usage instructions
-            
-            The generated codebase should be a complete, deployable application that matches the YAML specification exactly.
-            " --allow-all-tools || echo "Generation completed with warnings"
+            # Generate API documentation
+            python3 tools/build_docs.py "$f" || true
             
             # Verify generated files exist
             if [ -d "$OUT_DIR" ]; then

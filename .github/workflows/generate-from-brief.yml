@@ -77,7 +77,7 @@ jobs:
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install pyyaml jinja2
+          pip install pyyaml jinja2 jsonschema
       
       - name: Detect changed brief
         id: brief
