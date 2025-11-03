@@ -1,0 +1,1132 @@
+# ToySoldiers_Stack.yaml
+# Comprehensive Platform Architecture & Implementation Brief
+# Generated from raw chat analysis - Single source of truth for all development
+
+project_meta:
+  name: "Toy Soldiers MVP Platform"
+  description: >
+    Full-stack modular content streaming and monetization platform combining
+    Spotify (audio), YouTube (video), and Patreon (creator funding) paradigms.
+    Built on Supabase, Cloudflare, FastAPI, and Expo — designed for edge delivery,
+    multi-phase scaling, and microservice isolation with explicit Creator/Fan workflow separation.
+  owner: "Immutability.Space / Toy.Soldiers"
+  repo_structure: modular_monorepo
+  deployment_strategy: hybrid_cloud
+  development_approach: training_wheels_first_project
+  
+  # Core Design Principles
+  principles:
+    - modular_by_default: Each service can be built, tested, and deployed independently
+    - workflow_separation: Clear Creator vs Fan paths to prevent development confusion
+    - cloud_native: YAML/JSON over XML/XSD for universal cloud service compatibility
+    - validation_driven: OpenAPI + JSON Schema enforcement replaces custom XSD systems
+    - sdk_generation: Auto-generated TypeScript and Python clients maintain type safety
+    - edge_first: Cloudflare-centric with Hetzner compute fallback
+    
+  deploy_targets:
+    primary:
+      - Hetzner: Core backend services (FastAPI, Docker, Caddy)
+      - Cloudflare: CDN, R2 storage, Workers, Stream, Pages, Zero Trust
+      - Supabase: PostgreSQL, Auth, Realtime, Storage fallback
+      - LiveKit: Live streaming and room management
+    monitoring:
+      - PostHog: Analytics and event tracking
+      - Grafana: System monitoring and alerting
+      - Prometheus: Metrics collection
+      - Uptime Kuma: Service health monitoring
+
+environments:
+  development:
+    description: Local Docker + Cloudflare Tunnel development environment
+    host: "localhost:8000"
+    network: "toysoldiers_dev_net"
+    database: local_supabase
+    storage: local_minio
+    
+  staging:
+    description: Staging deployment on Hetzner with Cloudflare CDN edge
+    domain: "staging.toysoldiers.space"
+    ssl: true
+    database: supabase_staging
+    storage: cloudflare_r2_staging
+    
+  production:
+    description: Live deployment via Hetzner + Cloudflare Zero Trust
+    domain: "app.toysoldiers.space"
+    ssl: true
+    database: supabase_production
+    storage: cloudflare_r2_production
+
+# MODULAR MONOREPO STRUCTURE
+repo_tree: |
+  toysoldiers/
+  │
+  ├── backend/                              # Core backend services
+  │   ├── core/                            # Shared services used by both workflows
+  │   │   ├── auth/                        # Supabase + FastAPI auth gateway
+  │   │   │   ├── main.py
+  │   │   │   ├── routes/
+  │   │   │   │   ├── signup.py
+  │   │   │   │   ├── login.py
+  │   │   │   │   └── profile.py
+  │   │   │   ├── models/
+  │   │   │   │   ├── user.py
+  │   │   │   │   └── session.py
+  │   │   │   ├── tests/
+  │   │   │   ├── Dockerfile
+  │   │   │   └── README.md
+  │   │   │
+  │   │   ├── payments/                    # Stripe Connect integration
+  │   │   │   ├── main.py
+  │   │   │   ├── routes/
+  │   │   │   │   ├── checkout.py
+  │   │   │   │   ├── webhook.py
+  │   │   │   │   └── payouts.py
+  │   │   │   ├── models/
+  │   │   │   │   └── transaction.py
+  │   │   │   ├── Dockerfile
+  │   │   │   └── README.md
+  │   │   │
+  │   │   ├── analytics/                   # PostHog + metrics ingestion
+  │   │   │   ├── main.py
+  │   │   │   ├── collectors/
+  │   │   │   │   ├── engagement.py
+  │   │   │   │   ├── content_metrics.py
+  │   │   │   │   └── monetization.py
+  │   │   │   ├── dashboards/
+  │   │   │   │   ├── posthog_cohorts.json
+  │   │   │   │   └── grafana_dash.json
+  │   │   │   ├── Dockerfile
+  │   │   │   └── README.md
+  │   │   │
+  │   │   ├── content_api/                 # CRUD + media transcoding → R2
+  │   │   │   ├── main.py
+  │   │   │   ├── routes/
+  │   │   │   │   ├── upload.py           # Handles R2 / Stream API
+  │   │   │   │   ├── feed.py             # Query + pagination
+  │   │   │   │   ├── player.py           # HLS link serving
+  │   │   │   │   └── analytics.py        # PostHog event dispatch
+  │   │   │   ├── models/
+  │   │   │   │   ├── content.py
+  │   │   │   │   ├── tag.py
+  │   │   │   │   └── category.py
+  │   │   │   ├── Dockerfile
+  │   │   │   └── README.md
+  │   │   │
+  │   │   └── chat/                        # Comments + live chat
+  │   │       ├── main.py
+  │   │       ├── routes/
+  │   │       │   ├── comments.py
+  │   │       │   ├── live_chat.py
+  │   │       │   └── presence.py
+  │   │       ├── models/
+  │   │       │   ├── comment.py
+  │   │       │   └── chat_message.py
+  │   │       ├── websocket/
+  │   │       │   └── supabase_realtime.py
+  │   │       ├── tests/
+  │   │       ├── Dockerfile
+  │   │       └── README.md
+  │   │
+  │   ├── creator/                         # Creator-only workflow services
+  │   │   ├── upload_service/
+  │   │   │   ├── main.py
+  │   │   │   ├── routes/upload.py
+  │   │   │   ├── routes/manage_content.py
+  │   │   │   └── routes/creator_stats.py
+  │   │   ├── dashboard_service/
+  │   │   │   ├── main.py
+  │   │   │   ├── routes/earnings.py
+  │   │   │   ├── routes/insights.py
+  │   │   │   └── routes/profile_settings.py
+  │   │   └── profile_service/
+  │   │       ├── main.py
+  │   │       └── routes/profile.py
+  │   │
+  │   ├── fan/                             # Fan-only workflow services
+  │   │   ├── discovery_service/
+  │   │   │   ├── main.py
+  │   │   │   ├── routes/feed.py
+  │   │   │   ├── routes/recommendations.py
+  │   │   │   └── routes/follow.py
+  │   │   └── interaction_service/
+  │   │       ├── main.py
+  │   │       ├── routes/comments.py
+  │   │       ├── routes/tips.py
+  │   │       └── routes/subscriptions.py
+  │   │
+  │   └── gateway/                         # API gateway + routing proxy
+  │       ├── main.py
+  │       ├── routes/
+  │       │   ├── proxy_auth.py
+  │       │   ├── proxy_content.py
+  │       │   └── proxy_payments.py
+  │       ├── nginx.conf
+  │       └── Dockerfile
+  │
+  ├── frontend/                            # Expo + web applications
+  │   ├── creator_app/                     # Expo app for creators
+  │   │   ├── app.json
+  │   │   ├── package.json
+  │   │   ├── src/
+  │   │   │   ├── screens/
+  │   │   │   │   ├── UploadScreen.tsx     # → /backend/creator/upload_service
+  │   │   │   │   ├── DashboardScreen.tsx  # → /backend/creator/dashboard_service
+  │   │   │   │   ├── EarningsScreen.tsx   # → /backend/core/payments
+  │   │   │   │   ├── ChatScreen.tsx       # → /backend/core/chat
+  │   │   │   │   └── ProfileScreen.tsx
+  │   │   │   ├── components/
+  │   │   │   │   ├── VideoCard.tsx
+  │   │   │   │   ├── CommentBox.tsx
+  │   │   │   │   └── TipButton.tsx
+  │   │   │   ├── hooks/
+  │   │   │   │   ├── useSupabase.ts
+  │   │   │   │   └── useRealtime.ts
+  │   │   │   └── utils/
+  │   │   │       ├── api.ts
+  │   │   │       └── theme.ts
+  │   │   └── README.md
+  │   │
+  │   ├── fan_app/                         # Expo app for fans  
+  │   │   ├── app.json
+  │   │   ├── package.json
+  │   │   ├── src/
+  │   │   │   ├── screens/
+  │   │   │   │   ├── HomeFeed.tsx         # → /backend/fan/discovery_service
+  │   │   │   │   ├── PlayerScreen.tsx     # → /backend/core/content_api
+  │   │   │   │   ├── TipScreen.tsx        # → /backend/core/payments
+  │   │   │   │   ├── CommentSection.tsx   # → /backend/fan/interaction_service
+  │   │   │   │   └── ProfileScreen.tsx
+  │   │   │   ├── components/
+  │   │   │   ├── hooks/
+  │   │   │   │   ├── useSupabase.ts
+  │   │   │   │   └── useFanAPI.ts
+  │   │   │   └── utils/
+  │   │   └── README.md
+  │   │
+  │   ├── shared_ui/                       # Reusable components
+  │   │   ├── VideoCard.tsx
+  │   │   ├── CommentBox.tsx
+  │   │   ├── PlayerControls.tsx
+  │   │   └── TipButton.tsx
+  │   │
+  │   └── web/                             # Optional Next.js dashboard
+  │       ├── pages/
+  │       │   ├── index.tsx
+  │       │   ├── creator.tsx
+  │       │   ├── analytics.tsx
+  │       │   └── login.tsx
+  │       └── package.json
+  │
+  ├── database/
+  │   ├── schema.sql                       # Tables: users, content, comments, tips
+  │   ├── seed_data.sql
+  │   ├── migrations/
+  │   │   ├── 001_init.sql
+  │   │   ├── 002_add_comments.sql
+  │   │   └── 003_add_tips.sql
+  │   └── README.md
+  │
+  ├── infra/
+  │   ├── docker-compose.yml               # Local dev (API + Supabase + PostHog)
+  │   ├── terraform/
+  │   │   ├── main.tf                      # Cloudflare, Supabase, Stripe secrets
+  │   │   └── variables.tf
+  │   ├── caddy/
+  │   │   ├── Caddyfile
+  │   │   └── ssl/
+  │   └── README.md
+  │
+  ├── clients/                             # Auto-generated SDKs
+  │   ├── typescript/
+  │   │   └── openapi.ts
+  │   └── python/
+  │       └── toysoldiers_client/
+  │           ├── __init__.py
+  │           ├── api/
+  │           ├── models/
+  │           └── client.py
+  │
+  ├── scripts/
+  │   ├── deploy.sh
+  │   ├── seed_posthog.py
+  │   ├── migrate_db.sh
+  │   ├── lint_all.sh
+  │   └── generate_sdk.sh
+  │
+  ├── docs/
+  │   ├── ToySoldiers_Stack.yaml           # This file - master architecture
+  │   ├── ToySoldiers_API_OpenAPI.yaml     # OpenAPI 3.1 specification
+  │   ├── ToySoldiers_API_Schema.json      # JSON Schema validation
+  │   ├── creator_flow.md                  # Creator workflow documentation
+  │   ├── fan_flow.md                      # Fan workflow documentation
+  │   └── architecture_diagram.mmd         # Mermaid system diagram
+  │
+  ├── .github/
+  │   └── workflows/
+  │       ├── validate_openapi.yml
+  │       ├── build_backend.yml
+  │       ├── build_frontend.yml
+  │       ├── deploy_staging.yml
+  │       ├── deploy_production.yml
+  │       ├── generate_sdk.yml
+  │       └── test_suite.yml
+  │
+  ├── .env.example
+  ├── Makefile
+  └── README.md
+
+# BACKEND SERVICES ARCHITECTURE
+backend_services:
+  core:
+    description: Shared FastAPI services used by both Creator and Fan workflows
+    runtime: FastAPI + Uvicorn + Gunicorn
+    deployment: Docker Compose (Hetzner) + Cloudflare Workers proxy
+    
+    services:
+      auth_service:
+        path: ./backend/core/auth
+        purpose: Supabase JWT verification, session management, OAuth
+        endpoints:
+          - POST /auth/signup
+          - POST /auth/login  
+          - GET /auth/profile
+          - POST /auth/logout
+        integrations: [Supabase.Auth, PostHog]
+        
+      payments_service:
+        path: ./backend/core/payments
+        purpose: Stripe Connect + webhook processing for tips & subscriptions
+        endpoints:
+          - POST /payments/checkout
+          - POST /payments/webhook
+          - GET /payments/payouts
+          - GET /payments/history
+        integrations: [Stripe.Connect, Supabase.tips, PostHog]
+        
+      analytics_service:
+        path: ./backend/core/analytics
+        purpose: Collect PostHog & system metrics for dashboards
+        endpoints:
+          - POST /analytics/event
+          - GET /analytics/user/:id
+          - GET /analytics/dashboard/:creator_id
+        integrations: [PostHog, Supabase.analytics_views]
+        
+      content_api:
+        path: ./backend/core/content_api
+        purpose: CRUD for content objects & streaming URLs
+        endpoints:
+          - GET /content/:id
+          - POST /content/create
+          - GET /feed/global
+          - DELETE /content/:id
+          - GET /stream/:id
+        integrations: [Cloudflare.R2, Cloudflare.Stream, Supabase.content]
+        
+      chat_service:
+        path: ./backend/core/chat
+        purpose: Comments + live chat with realtime features
+        endpoints:
+          - POST /chat/comment
+          - GET /chat/comments/:content_id
+          - WS /chat/live/:room_id
+        integrations: [Supabase.Realtime, LiveKit]
+
+  creator:
+    description: Backend microservices exclusively for Creator workflows
+    services:
+      upload_service:
+        path: ./backend/creator/upload_service
+        endpoints:
+          - POST /creator/upload
+          - GET /creator/uploads
+          - PATCH /creator/content/:id
+        integrations: [Cloudflare.R2, Cloudflare.Stream, Supabase.content, PostHog]
+        
+      dashboard_service:
+        path: ./backend/creator/dashboard_service
+        endpoints:
+          - GET /creator/dashboard
+          - GET /creator/earnings
+          - GET /creator/analytics
+        integrations: [Stripe, Supabase.analytics_views, PostHog]
+        
+      profile_service:
+        path: ./backend/creator/profile_service
+        endpoints:
+          - GET /creator/profile
+          - PATCH /creator/profile
+          - POST /creator/tiers
+        integrations: [Supabase.creators, Stripe.Products]
+
+  fan:
+    description: Backend microservices exclusively for Fan workflows
+    services:
+      discovery_service:
+        path: ./backend/fan/discovery_service
+        endpoints:
+          - GET /feed
+          - GET /recommendations
+          - POST /follow/:creator_id
+          - GET /trending
+        integrations: [Supabase.content, analytics_views, PostHog]
+        
+      interaction_service:
+        path: ./backend/fan/interaction_service
+        endpoints:
+          - POST /comment
+          - GET /comments/:content_id
+          - POST /tip
+          - POST /subscribe/:creator_id
+        integrations: [Supabase.comments, Stripe, Realtime, PostHog]
+
+  gateway:
+    description: Unified API ingress and routing
+    proxy: Caddy (Hetzner) + Cloudflare Worker
+    routes:
+      - /api/auth/* → backend/core/auth
+      - /api/payments/* → backend/core/payments
+      - /api/analytics/* → backend/core/analytics
+      - /api/content/* → backend/core/content_api
+      - /api/chat/* → backend/core/chat
+      - /api/creator/* → backend/creator/*
+      - /api/fan/* → backend/fan/*
+    ssl: managed by Caddy + Cloudflare
+    rate_limiting: enabled
+    cors: configured for frontend domains
+
+# DATABASE ARCHITECTURE
+databases:
+  engine: PostgreSQL (Supabase hosted)
+  version: "15.x"
+  
+  database_schema:
+    erd_ascii: |
+      ┌───────────────────┐      ┌──────────────────┐
+      │  users            │      │  creators        │
+      │───────────────────│ 1:1  │──────────────────│
+      │ id (PK)           │◄────►│ user_id (FK)     │
+      │ email             │      │ payout_account   │
+      │ role [fan|creator]│      │ bio, tiers       │
+      │ created_at        │      │ verified         │
+      └───────────────────┘      └──────────────────┘
+             │1                           │1
+             │                            │
+             │0..*                        │0..*
+             ▼                            ▼
+      ┌───────────────────┐        ┌─────────────────┐
+      │  content          │        │  tips           │
+      │───────────────────│        │─────────────────│
+      │ id (PK)           │        │ id (PK)         │
+      │ creator_id (FK)   │        │ from_user (FK)  │
+      │ title, description│        │ to_creator (FK) │
+      │ media_url, tags   │        │ amount          │
+      │ visibility        │        │ stripe_txn      │
+      │ created_at        │        │ created_at      │
+      └───────────────────┘        └─────────────────┘
+         │1                    
+         │                    
+         │0..*                
+         ▼                    
+      ┌──────────────┐        
+      │  comments    │        
+      │──────────────│        
+      │ id (PK)      │        
+      │ content_id FK│        
+      │ user_id FK   │        
+      │ parent_id FK │        
+      │ text         │        
+      │ created_at   │        
+      └──────────────┘        
+
+  schemas:
+    public:
+      tables:
+        users:
+          columns:
+            - id: { type: uuid, primary_key: true, default: "uuid_generate_v4()" }
+            - email: { type: text, unique: true, not_null: true }
+            - password_hash: { type: text, not_null: true }
+            - role: { type: text, check: "role IN ('creator','fan','admin')" }
+            - created_at: { type: timestamptz, default: "now()" }
+            - updated_at: { type: timestamptz, default: "now()" }
+          indexes:
+            - email_idx: { columns: [email], unique: true }
+            - role_idx: { columns: [role] }
+            
+        creators:
+          columns:
+            - id: { type: uuid, primary_key: true, default: "uuid_generate_v4()" }
+            - user_id: { type: uuid, foreign_key: "users(id)", on_delete: "CASCADE" }
+            - payout_account: { type: text }
+            - bio: { type: text }
+            - tiers: { type: jsonb }
+            - verified: { type: boolean, default: false }
+            - created_at: { type: timestamptz, default: "now()" }
+          indexes:
+            - user_id_idx: { columns: [user_id], unique: true }
+            
+        content:
+          columns:
+            - id: { type: uuid, primary_key: true, default: "uuid_generate_v4()" }
+            - creator_id: { type: uuid, foreign_key: "creators(id)", on_delete: "CASCADE" }
+            - title: { type: text, not_null: true }
+            - description: { type: text }
+            - media_url: { type: text }
+            - stream_url: { type: text }
+            - thumbnail_url: { type: text }
+            - tags: { type: "text[]" }
+            - visibility: { type: text, default: "public", check: "visibility IN ('public','unlisted','private')" }
+            - duration: { type: integer }
+            - file_size: { type: bigint }
+            - created_at: { type: timestamptz, default: "now()" }
+            - updated_at: { type: timestamptz, default: "now()" }
+          indexes:
+            - creator_id_idx: { columns: [creator_id] }
+            - visibility_idx: { columns: [visibility] }
+            - created_at_idx: { columns: [created_at] }
+            - tags_idx: { columns: [tags], type: "gin" }
+            
+        comments:
+          columns:
+            - id: { type: uuid, primary_key: true, default: "uuid_generate_v4()" }
+            - content_id: { type: uuid, foreign_key: "content(id)", on_delete: "CASCADE" }
+            - user_id: { type: uuid, foreign_key: "users(id)", on_delete: "CASCADE" }
+            - parent_id: { type: uuid, foreign_key: "comments(id)", on_delete: "CASCADE" }
+            - text: { type: text, not_null: true }
+            - created_at: { type: timestamptz, default: "now()" }
+          indexes:
+            - content_id_idx: { columns: [content_id] }
+            - user_id_idx: { columns: [user_id] }
+            - parent_id_idx: { columns: [parent_id] }
+            
+        tips:
+          columns:
+            - id: { type: uuid, primary_key: true, default: "uuid_generate_v4()" }
+            - from_user: { type: uuid, foreign_key: "users(id)" }
+            - to_creator: { type: uuid, foreign_key: "creators(id)" }
+            - amount: { type: "numeric(10,2)", not_null: true }
+            - stripe_txn: { type: text }
+            - status: { type: text, default: "pending" }
+            - created_at: { type: timestamptz, default: "now()" }
+          indexes:
+            - from_user_idx: { columns: [from_user] }
+            - to_creator_idx: { columns: [to_creator] }
+            - created_at_idx: { columns: [created_at] }
+            
+        analytics_views:
+          columns:
+            - id: { type: serial, primary_key: true }
+            - date: { type: date, default: "current_date" }
+            - user_id: { type: uuid, foreign_key: "users(id)" }
+            - content_id: { type: uuid, foreign_key: "content(id)" }
+            - view_count: { type: integer, default: 1 }
+            - duration: { type: "numeric(8,2)" }
+            - device_type: { type: text }
+            - referrer: { type: text }
+          indexes:
+            - date_idx: { columns: [date] }
+            - user_id_idx: { columns: [user_id] }
+            - content_id_idx: { columns: [content_id] }
+
+  views:
+    dashboard_creator:
+      query: |
+        SELECT c.creator_id,
+               COUNT(DISTINCT v.id) AS total_views,
+               SUM(v.duration) AS total_watch_time,
+               SUM(t.amount) AS total_tips,
+               COUNT(DISTINCT co.id) AS total_comments
+        FROM creators c
+        LEFT JOIN content ct ON ct.creator_id = c.id
+        LEFT JOIN analytics_views v ON v.content_id = ct.id
+        LEFT JOIN tips t ON t.to_creator = c.id
+        LEFT JOIN comments co ON co.content_id = ct.id
+        GROUP BY c.creator_id
+        
+  realtime_channels:
+    - comments
+    - live_chat
+    - tips
+    
+  backup:
+    strategy: automatic daily via Supabase
+    retention: 30 days
+    
+  migrations:
+    tool: Alembic (Python)
+    path: ./database/migrations/
+
+# FRONTEND SERVICES
+frontend_services:
+  creator_app:
+    path: ./frontend/creator_app
+    framework: Expo (React Native + TypeScript)
+    styling: Tailwind + NativeWind
+    target_platforms: [iOS, Android, Web]
+    
+    features:
+      - Creator Authentication & Profile Management
+      - Content Upload (video/audio to Cloudflare R2)
+      - Dashboard (views, tips, followers analytics)
+      - Real-time Chat & Comments
+      - Earnings & Payout Management
+      - Live Streaming Integration
+      
+    key_screens:
+      - UploadScreen.tsx: Media upload with progress tracking
+      - DashboardScreen.tsx: Analytics and performance metrics
+      - EarningsScreen.tsx: Revenue tracking and payout management
+      - ChatScreen.tsx: Fan interaction and live chat
+      - ProfileScreen.tsx: Creator profile and settings
+      - LiveScreen.tsx: LiveKit streaming interface
+      
+    data_sources:
+      - Supabase REST API (auth, database)
+      - FastAPI backend (creator-specific routes)
+      - PostHog Analytics API
+      - Stripe API (payment status)
+      - LiveKit API (streaming)
+      
+    deployment:
+      development: Expo Go local development
+      staging: Cloudflare Pages static build + Workers API proxy
+      production: Expo Application Services (EAS) + App Stores
+      
+    dependencies:
+      - expo-av: Audio/video handling
+      - react-query: Data fetching and caching
+      - supabase-js: Database and auth
+      - posthog-js: Analytics tracking
+      - nativewind: Styling system
+      - react-navigation: Navigation
+      - axios: HTTP client
+      - stripe-react-native: Payment processing
+      - livekit-react-native: Live streaming
+
+  fan_app:
+    path: ./frontend/fan_app
+    framework: Expo (React Native + TypeScript)
+    styling: Tailwind + NativeWind
+    target_platforms: [iOS, Android, Web]
+    
+    features:
+      - Content Discovery & Personalized Feed
+      - Media Player (audio/video streaming)
+      - Tipping & Creator Support
+      - Comments & Live Chat
+      - Creator Following & Subscriptions
+      - Offline Content Caching
+      
+    key_screens:
+      - HomeFeed.tsx: Personalized content discovery
+      - PlayerScreen.tsx: Media playback with HLS streaming
+      - TipScreen.tsx: Creator tipping interface
+      - CommentSection.tsx: Comment threads and live chat
+      - ProfileScreen.tsx: User profile and preferences
+      - DiscoverScreen.tsx: Explore new creators
+      
+    data_sources:
+      - Supabase REST API (auth, database)
+      - FastAPI backend (fan-specific routes)
+      - Cloudflare Stream (video playback URLs)
+      - PostHog Analytics API
+      
+    deployment:
+      development: Expo Go local development
+      staging: Cloudflare Pages
+      production: Expo Application Services (EAS) + App Stores
+      
+    dependencies:
+      - expo-av: Media playback
+      - react-query: Data fetching and caching
+      - supabase-js: Database and auth
+      - posthog-js: Analytics tracking
+      - nativewind: Styling system
+      - react-navigation: Navigation
+      - axios: HTTP client
+      - stripe-react-native: Payment processing
+
+  shared_ui:
+    description: Common design system components between Creator and Fan apps
+    library_management: Yarn workspaces
+    components:
+      - VideoCard.tsx: Content preview cards
+      - CommentBox.tsx: Comment input and display
+      - TipButton.tsx: Creator tipping widget
+      - PlayerControls.tsx: Media player interface
+      - UserAvatar.tsx: Profile pictures
+      - NotificationBadge.tsx: Real-time notifications
+    styling: Consistent theme system
+    testing: Jest + React Native Testing Library
+    linting: ESLint + Prettier
+
+# INFRASTRUCTURE & STORAGE
+infrastructure:
+  overview:
+    compute:
+      - Hetzner: Primary backend compute (Docker Swarm)
+      - Cloudflare Workers: Edge computing and API acceleration
+    storage:
+      - Cloudflare R2: Primary media storage with global CDN
+      - Cloudflare Stream: Video transcoding and adaptive streaming
+      - Supabase Storage: Fallback for small files and avatars
+    networking:
+      - Cloudflare Zero Trust: Security and access control
+      - Caddy: Reverse proxy with automatic HTTPS
+      - Tailscale: VPN access for development
+    monitoring:
+      - Uptime Kuma: Service health monitoring
+      - Grafana + Prometheus: System metrics and alerting
+      - PostHog: User analytics and product insights
+
+storage_cdns:
+  cloudflare_r2:
+    purpose: Primary storage for uploaded media
+    structure:
+      buckets:
+        - toysoldiers-audio: Audio content and podcasts
+        - toysoldiers-video: Video content and streams
+        - toysoldiers-thumbnails: Content preview images
+        - toysoldiers-assets: Creator profile images and branding
+    replication: Global edge (3+ replicas)
+    permissions:
+      public_read: true (via signed URLs)
+      upload_via_api: true (FastAPI signed POST)
+    cdn_caching:
+      - audio/*: 7 days TTL
+      - video/*: 7 days TTL
+      - thumbnails/*: 30 days TTL
+      
+  cloudflare_stream:
+    purpose: Adaptive bitrate transcoding for videos
+    integration:
+      upload: FastAPI signed request to Stream API
+      playback: m3u8 HLS URLs for Expo players
+      analytics: View metrics integration with PostHog
+    features:
+      - Automatic transcoding to multiple resolutions
+      - Global edge delivery
+      - Built-in analytics
+      - DRM protection for premium content
+      
+  livekit:
+    purpose: Live rooms for streaming and events
+    configuration:
+      region: fra1 (Hetzner Frankfurt)
+      egress: Cloudflare Stream integration
+      ingress: OBS Studio, browser WebRTC
+    features:
+      - Real-time video/audio streaming
+      - Interactive chat during streams
+      - Recording to Cloudflare R2
+      - Simulcast support
+
+# ANALYTICS & MONITORING
+analytics_monitoring:
+  posthog:
+    purpose: Product analytics and user behavior tracking
+    events:
+      user_events:
+        - user_signup
+        - user_login
+        - profile_updated
+      creator_events:
+        - content_uploaded
+        - stream_started
+        - payout_received
+      fan_events:
+        - content_viewed
+        - tip_sent
+        - comment_posted
+        - creator_followed
+      system_events:
+        - api_request
+        - error_occurred
+        - performance_metric
+    cohorts:
+      - active_creators
+      - paying_fans
+      - churned_users
+    sync: Supabase → PostHog via ETL worker
+    
+  grafana:
+    dashboards:
+      system_health:
+        - API response times
+        - Database connection pool
+        - Memory and CPU usage
+        - Error rates by service
+      business_metrics:
+        - User growth rate
+        - Content upload volume
+        - Tip transaction volume
+        - Monthly recurring revenue
+      creator_metrics:
+        - Top performing content
+        - Creator earnings distribution
+        - Upload frequency trends
+        
+  prometheus:
+    exporters:
+      - node_exporter: Server hardware metrics
+      - postgres_exporter: Database performance
+      - custom_fastapi: Application-specific metrics
+    retention: 30 days
+    
+  uptime_kuma:
+    checks:
+      - /api/health: Service health endpoint
+      - /auth/login: Authentication service
+      - /content/feed: Content delivery
+      - Database connectivity
+      - R2 storage access
+    notification_channels:
+      - Discord webhook for critical alerts
+      - Email for degraded performance
+
+# SECURITY & COMPLIANCE
+security_compliance:
+  zero_trust:
+    provider: Cloudflare Access
+    policies:
+      - Admin routes: Require 2FA + team membership
+      - Creator uploads: Valid JWT + role verification
+      - Payment webhooks: IP whitelist + signature verification
+    audit_logging: enabled
+    
+  secrets_management:
+    vault: Vaultwarden (self-hosted)
+    secrets:
+      - Supabase service role keys
+      - Stripe API keys and webhook secrets
+      - Cloudflare API tokens
+      - PostHog project keys
+      - JWT signing secrets
+    rotation_policy: 90 days for API keys
+    
+  encryption:
+    transport: TLS 1.3 via Caddy + Cloudflare
+    storage: AES-256 at rest (Supabase default)
+    application: bcrypt for password hashing
+    
+  data_retention:
+    user_content: Permanent (user-controlled deletion)
+    system_logs: 90 days
+    analytics_data: 2 years
+    payment_records: 7 years (compliance requirement)
+    
+  roles_permissions:
+    fan:
+      - can_view_public_content
+      - can_comment
+      - can_tip_creators
+      - can_follow_creators
+    creator:
+      - inherits fan permissions
+      - can_upload_content
+      - can_view_own_analytics
+      - can_manage_profile
+      - can_respond_to_comments
+      - can_receive_tips
+    admin:
+      - full_system_access
+      - can_moderate_content
+      - can_manage_users
+      - can_access_all_analytics
+
+# CI/CD PIPELINE
+ci_cd:
+  provider: GitHub Actions
+  strategy: GitOps with automated validation and deployment
+  
+  workflows:
+    validate_openapi:
+      trigger: [push, pull_request]
+      steps:
+        - Lint OpenAPI specification
+        - Validate JSON Schema compliance
+        - Generate TypeScript and Python SDKs
+        - Run API contract tests
+        
+    build_backend:
+      trigger: [push to main, staging]
+      steps:
+        - Build Docker images for each service
+        - Run unit tests with pytest
+        - Security scan with Snyk
+        - Push to GitHub Container Registry
+        
+    build_frontend:
+      trigger: [push to main, staging]
+      steps:
+        - Install dependencies with Yarn
+        - Build Expo web version
+        - Run Jest tests
+        - Deploy to Cloudflare Pages
+        
+    deploy_staging:
+      trigger: [push to staging branch]
+      steps:
+        - Deploy backend to Hetzner staging
+        - Update Cloudflare Worker routes
+        - Run integration tests
+        - Update staging DNS
+        
+    deploy_production:
+      trigger: [tag push]
+      steps:
+        - Deploy backend to Hetzner production
+        - Update Cloudflare production routes
+        - Run smoke tests
+        - Update production DNS
+        - Notify team via Discord
+        
+    generate_sdk:
+      trigger: [OpenAPI file changes]
+      steps:
+        - Generate TypeScript client
+        - Generate Python client
+        - Publish to npm (private registry)
+        - Publish to PyPI (private)
+        - Update client documentation
+
+# ENVIRONMENT VARIABLES
+env_variables:
+  required:
+    # Supabase Configuration
+    SUPABASE_URL: "https://your-project.supabase.co"
+    SUPABASE_ANON_KEY: "public-anon-key"
+    SUPABASE_SERVICE_ROLE_KEY: "service-role-key"
+    
+    # Stripe Configuration
+    STRIPE_SECRET_KEY: "sk_live_... or sk_test_..."
+    STRIPE_WEBHOOK_SECRET: "whsec_..."
+    STRIPE_CONNECT_CLIENT_ID: "ca_..."
+    
+    # Cloudflare Configuration
+    CLOUDFLARE_ACCOUNT_ID: "account-id"
+    CLOUDFLARE_API_TOKEN: "api-token"
+    CLOUDFLARE_R2_ACCESS_KEY: "access-key"
+    CLOUDFLARE_R2_SECRET_KEY: "secret-key"
+    R2_BUCKET_AUDIO: "toysoldiers-audio"
+    R2_BUCKET_VIDEO: "toysoldiers-video"
+    R2_BUCKET_THUMBNAILS: "toysoldiers-thumbnails"
+    CLOUDFLARE_STREAM_TOKEN: "stream-token"
+    
+    # LiveKit Configuration
+    LIVEKIT_API_KEY: "api-key"
+    LIVEKIT_API_SECRET: "api-secret"
+    LIVEKIT_WS_URL: "wss://toysoldiers.livekit.cloud"
+    
+    # Analytics Configuration
+    POSTHOG_API_KEY: "phc_project_key"
+    POSTHOG_HOST: "https://app.posthog.com"
+    
+    # Infrastructure Configuration
+    HETZNER_API_TOKEN: "hetzner-token"
+    VAULTWARDEN_URL: "https://vault.toysoldiers.space"
+    VAULTWARDEN_TOKEN: "vault-token"
+    
+    # Security Configuration
+    JWT_SECRET_KEY: "your-jwt-secret"
+    ENCRYPTION_KEY: "your-encryption-key"
+    ZERO_TRUST_POLICY_ID: "policy-id"
+    
+    # Application URLs
+    FRONTEND_URL: "https://app.toysoldiers.space"
+    BACKEND_URL: "https://api.toysoldiers.space"
+    CREATOR_APP_URL: "https://creator.toysoldiers.space"
+    FAN_APP_URL: "https://fan.toysoldiers.space"
+    
+    # Notification Configuration
+    DISCORD_WEBHOOK: "https://discord.com/api/webhooks/..."
+    
+  optional:
+    # Development Configuration
+    DEBUG: "false"
+    LOG_LEVEL: "INFO"
+    SENTRY_DSN: "sentry-dsn"
+    
+    # Performance Configuration
+    REDIS_URL: "redis://localhost:6379"
+    DATABASE_POOL_SIZE: "20"
+    API_RATE_LIMIT: "1000"
+
+# DEVELOPMENT WORKFLOW
+development_workflow:
+  local_setup:
+    steps:
+      - Clone repository
+      - Copy .env.example to .env and fill values
+      - Run `make setup` to install dependencies
+      - Run `docker-compose up -d` to start services
+      - Run `make migrate` to initialize database
+      - Run `make seed` to add sample data
+      - Start frontend with `make dev-frontend`
+      - Start backend with `make dev-backend`
+      
+  creator_workflow_development:
+    focus_areas:
+      - /backend/creator/ services
+      - /frontend/creator_app/ screens
+      - Shared components in /frontend/shared_ui/
+    testing:
+      - Unit tests for upload service
+      - Integration tests for dashboard API
+      - E2E tests for creator journey
+      
+  fan_workflow_development:
+    focus_areas:
+      - /backend/fan/ services
+      - /frontend/fan_app/ screens
+      - Shared components in /frontend/shared_ui/
+    testing:
+      - Unit tests for discovery service
+      - Integration tests for interaction API
+      - E2E tests for fan journey
+      
+  shared_development:
+    focus_areas:
+      - /backend/core/ services
+      - /frontend/shared_ui/ components
+      - Database schema in /database/
+    testing:
+      - Unit tests for core services
+      - Integration tests for auth flow
+      - Database migration tests
+
+# DEPLOYMENT STRATEGY
+deploy_steps:
+  prerequisites:
+    - Terraform installed and configured
+    - Docker and Docker Compose installed
+    - GitHub CLI authenticated
+    - Cloudflare API tokens configured
+    - Supabase project created
+    - Domain DNS pointed to Cloudflare
+    
+  infrastructure_setup:
+    - step: "Initialize Terraform state"
+      command: "cd infra && terraform init"
+    - step: "Plan infrastructure changes"
+      command: "terraform plan -var-file=production.tfvars"
+    - step: "Provision Hetzner servers and Cloudflare DNS"
+      command: "terraform apply -auto-approve"
+    - step: "Configure Caddy reverse proxy"
+      command: "scp caddy/Caddyfile server:/etc/caddy/"
+      
+  application_deployment:
+    - step: "Build and deploy backend services"
+      command: "make build-backend && make deploy-backend"
+    - step: "Deploy frontend to Cloudflare Pages"
+      command: "make build-frontend && npx wrangler pages deploy"
+    - step: "Run database migrations"
+      command: "make migrate-production"
+    - step: "Seed initial data"
+      command: "make seed-production"
+      
+  validation:
+    - step: "Run health checks"
+      command: "curl https://api.toysoldiers.space/health"
+    - step: "Verify SSL certificates"
+      command: "caddy validate --config /etc/caddy/Caddyfile"
+    - step: "Test authentication flow"
+      command: "make test-auth-flow"
+    - step: "Verify analytics tracking"
+      command: "make test-analytics"
+      
+  monitoring_setup:
+    - step: "Deploy Grafana dashboards"
+      command: "make deploy-grafana"
+    - step: "Configure Uptime Kuma checks"
+      command: "make setup-monitoring"
+    - step: "Test alert notifications"
+      command: "make test-alerts"
+      
+  post_deployment:
+    - step: "Generate and publish SDKs"
+      command: "make generate-sdk && make publish-sdk"
+    - step: "Update documentation"
+      command: "make update-docs"
+    - step: "Notify team via Discord"
+      command: "curl -X POST $DISCORD_WEBHOOK -d '{\"content\":\"🚀 Toy Soldiers deployed successfully!\"}'"
+
+# SUCCESS METRICS & KPIs
+success_metrics:
+  technical:
+    - API response time < 200ms (95th percentile)
+    - Uptime > 99.9%
+    - Zero security vulnerabilities in production
+    - Successful deployments > 95%
+    - Test coverage > 80%
+    
+  business:
+    - User registration growth rate
+    - Creator content upload frequency
+    - Fan engagement metrics (views, comments, tips)
+    - Monthly recurring revenue growth
+    - Customer acquisition cost
+    
+  operational:
+    - Mean time to resolution < 4 hours
+    - Deployment frequency > 1 per week
+    - Feature delivery velocity
+    - Team development velocity
+    - Documentation completeness
+
+# SCALING STRATEGY
+scaling_strategy:
+  phase_1_mvp:
+    target: 100 creators, 1000 fans
+    infrastructure: Single Hetzner server + Cloudflare
+    features: Basic upload, streaming, tipping
+    
+  phase_2_growth:
+    target: 1000 creators, 10000 fans
+    infrastructure: Kubernetes cluster + Redis caching
+    features: Live streaming, subscriptions, mobile apps
+    
+  phase_3_scale:
+    target: 10000 creators, 100000 fans
+    infrastructure: Multi-region deployment + CDN optimization
+    features: Advanced analytics, creator tools, marketplace
+
+# RISK MITIGATION
+risk_mitigation:
+  technical_risks:
+    - Single point of failure: Implement service redundancy
+    - Data loss: Automated backups + disaster recovery
+    - Performance degradation: Auto-scaling + monitoring
+    - Security breach: Zero trust + regular audits
+    
+  business_risks:
+    - Creator churn: Robust analytics + creator tools
+    - Payment processing issues: Multiple payment providers
+    - Content moderation: Automated + human review
+    - Regulatory compliance: Legal review + data protection
+
+# MAINTENANCE SCHEDULE
+maintenance_schedule:
+  daily:
+    - Monitor service health and performance
+    - Review error logs and alerts
+    - Backup verification
+    
+  weekly:
+    - Security updates and patches
+    - Performance optimization review
+    - User feedback analysis
+    
+  monthly:
+    - Infrastructure cost review
+    - Capacity planning assessment
+    - Feature roadmap review
+    
+  quarterly:
+    - Security audit and penetration testing
+    - Disaster recovery testing
+    - Architecture review and optimization# Trigger workflow
+
+# Fix no-interactive option
