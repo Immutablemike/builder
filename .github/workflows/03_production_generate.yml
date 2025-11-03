@@ -25,7 +25,8 @@ jobs:
         
       - name: Generate projects using NEW GitHub Copilot CLI
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
           # Install the NEW standalone Copilot CLI (supports PAT authentication)
           npm install -g @github/copilot
