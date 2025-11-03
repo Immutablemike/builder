@@ -23,12 +23,12 @@ jobs:
       - name: Install Python dependencies
         run: pip install pyyaml jsonschema jinja2
         
-      - name: Generate projects using NEW GitHub Copilot CLI
+      - name: Generate deterministic codebase from YAML
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         run: |
-          # Install the NEW standalone Copilot CLI (supports PAT authentication)
+          # Install the NEW standalone Copilot CLI
           npm install -g @github/copilot
           
           # Configure trusted directory for headless operation
@@ -37,104 +37,47 @@ jobs:
           
           for f in briefs/*_Stack.yaml; do
             NAME=$(basename "$f" _Stack.yaml)
-            OUT_DIR="Toy_Soldiers_completedly_agentic"
-            API_SPEC="${NAME}_API_OpenAPI.yaml"
-            SCHEMA_FILE="${NAME}_API_Schema.json"
             
-            echo "🚀 Generating ${NAME} using NEW Copilot CLI with GITHUB_TOKEN authentication..."
+            # Use project name from YAML or fallback to filename
+            OUT_DIR="${NAME,,}"
+            
+            # Clean any existing output for fresh generation
+            rm -rf "$OUT_DIR" 2>/dev/null || true
+            
+            echo "🚀 Generating $OUT_DIR from YAML specification..."
             echo "📖 Processing $(wc -c < "$f") character YAML manifest..."
             
-            # Use the NEW Copilot CLI with the complete YAML content
-            copilot -p "
-            You are an YAML-to-Codebase Factory. Your job is to read this massive 1,700+ line YAML specification and generate the EXACT modular monorepo structure specified in the repo_tree section.
+            # Read YAML specification
+            YAML_SPEC=$(cat "$f")
             
-            YAML MANIFEST CONTENT (READ EVERY LINE):
-            $(cat "$f")
+            # Execute deterministic generation
+            copilot -p "You are a YAML-to-Codebase Factory. Generate ONLY what is specified in the repo_tree section of this YAML.
+
+YAML SPECIFICATION:
+$YAML_SPEC
+
+DETERMINISTIC RULES:
+1. Read the repo_tree section that shows exact directory/file structure
+2. Generate EXACTLY those directories and files - no additions, no omissions
+3. Create working code based on backend_services, database, and frontend sections
+4. Use specified tech stack: FastAPI + Expo + Supabase + Cloudflare
+5. NO placeholder code, NO TODO comments, NO carryover from previous structures
+
+Generate complete working ToySoldiers platform from YAML specification." --allow-all-tools
             
-            🚨 CRITICAL: The YAML contains a detailed repo_tree section that specifies EXACTLY what files to create. 
-            Follow the repo_tree EXACTLY - every directory, every file, every route, every component listed.
-            
-            MANDATORY IMPLEMENTATION FROM YAML repo_tree:
-            
-            READ THE YAML repo_tree SECTION AND CREATE EXACTLY WHAT IT SPECIFIES:
-            
-            1. backend/core/auth/ → main.py, routes/signup.py, routes/login.py, routes/profile.py, models/user.py, models/session.py, tests/, Dockerfile, README.md
-            2. backend/core/payments/ → main.py, routes/checkout.py, routes/webhook.py, routes/payouts.py, models/transaction.py, Dockerfile, README.md  
-            3. backend/core/analytics/ → main.py, collectors/engagement.py, collectors/content_metrics.py, collectors/monetization.py, dashboards/posthog_cohorts.json, dashboards/grafana_dash.json, Dockerfile, README.md
-            4. backend/core/content_api/ → main.py, routes/upload.py, routes/feed.py, routes/player.py, routes/analytics.py, models/content.py, models/tag.py, models/category.py, Dockerfile, README.md
-            5. backend/core/chat/ → main.py, routes/comments.py, routes/live_chat.py, routes/presence.py, models/comment.py, models/chat_message.py, websocket/supabase_realtime.py, tests/, Dockerfile, README.md
-            6. backend/creator/upload_service/ → main.py, routes/upload.py, routes/manage_content.py, routes/creator_stats.py
-            7. backend/creator/dashboard_service/ → main.py, routes/earnings.py, routes/insights.py, routes/profile_settings.py
-            8. backend/creator/profile_service/ → main.py, routes/profile.py
-            9. backend/fan/discovery_service/ → main.py, routes/feed.py, routes/recommendations.py, routes/follow.py
-            10. backend/fan/interaction_service/ → main.py, routes/comments.py, routes/tips.py, routes/subscriptions.py
-            11. backend/gateway/ → main.py, routes/proxy_auth.py, routes/proxy_content.py, routes/proxy_payments.py, nginx.conf, Dockerfile
-            12. frontend/creator_app/ → app.json, package.json, src/screens/UploadScreen.tsx, src/screens/DashboardScreen.tsx, src/screens/EarningsScreen.tsx, src/screens/ChatScreen.tsx, src/screens/ProfileScreen.tsx, src/components/VideoCard.tsx, src/components/CommentBox.tsx, src/components/TipButton.tsx, src/hooks/useSupabase.ts, src/hooks/useRealtime.ts, src/utils/api.ts, src/utils/theme.ts, README.md
-            13. frontend/fan_app/ → app.json, package.json, src/screens/HomeFeed.tsx, src/screens/PlayerScreen.tsx, src/screens/TipScreen.tsx, src/screens/CommentSection.tsx, src/screens/ProfileScreen.tsx, src/components/, src/hooks/useSupabase.ts, src/hooks/useFanAPI.ts, src/utils/, README.md
-            14. frontend/shared_ui/ → VideoCard.tsx, CommentBox.tsx, PlayerControls.tsx, TipButton.tsx
-            15. frontend/web/ → pages/index.tsx, pages/creator.tsx, pages/analytics.tsx, pages/login.tsx, package.json
-            16. database/ → schema.sql, seed_data.sql, migrations/001_init.sql, migrations/002_add_comments.sql, migrations/003_add_tips.sql, README.md
-            17. infra/ → docker-compose.yml, terraform/main.tf, terraform/variables.tf, caddy/Caddyfile, caddy/ssl/, README.md
-            18. clients/ → typescript/openapi.ts, python/toysoldiers_client/__init__.py, python/toysoldiers_client/api/, python/toysoldiers_client/models/, python/toysoldiers_client/client.py
-            19. scripts/ → deploy.sh, seed_posthog.py, migrate_db.sh, lint_all.sh, generate_sdk.sh
-            20. docs/ → ToySoldiers_Stack.yaml, ToySoldiers_API_OpenAPI.yaml, ToySoldiers_API_Schema.json, creator_flow.md, fan_flow.md, architecture_diagram.mmd
-            21. .github/workflows/ → validate_openapi.yml, build_backend.yml, build_frontend.yml, deploy_staging.yml, deploy_production.yml, generate_sdk.yml, test_suite.yml
-            22. ROOT FILES → .env.example, Makefile, README.md
-            
-            🚨 IMPLEMENTATION REQUIREMENTS FROM YAML:
-            - FastAPI + Uvicorn + Gunicorn for backend services
-            - Expo React Native for creator_app/ and fan_app/
-            - PostgreSQL schema with users, creators, content, comments, tips tables
-            - Supabase for auth and database
-            - Cloudflare R2 for media storage  
-            - Stripe Connect for payments
-            - LiveKit for live streaming
-            - PostHog for analytics
-            - Docker containers for all services
-            - Complete working code - NO PLACEHOLDERS, NO TODOS
-            
-            READ THE YAML BACKEND_SERVICES SECTION FOR EXACT API ENDPOINTS:
-            - auth_service: POST /auth/signup, POST /auth/login, GET /auth/profile, POST /auth/logout
-            - payments_service: POST /payments/checkout, POST /payments/webhook, GET /payments/payouts, GET /payments/history  
-            - analytics_service: POST /analytics/event, GET /analytics/user/:id, GET /analytics/dashboard/:creator_id
-            - content_api: GET /content/:id, POST /content/create, GET /feed/global, DELETE /content/:id, GET /stream/:id
-            - chat_service: POST /chat/comment, GET /chat/comments/:content_id, WS /chat/live/:room_id
-            
-            READ THE YAML DATABASE SECTION FOR EXACT SCHEMA:
-            - users table: id, email, password_hash, role, created_at, updated_at
-            - creators table: id, user_id, payout_account, bio, tiers, verified, created_at
-            - content table: id, creator_id, title, description, media_url, stream_url, thumbnail_url, tags, visibility, duration, file_size, created_at, updated_at
-            - comments table: id, content_id, user_id, parent_id, text, created_at
-            - tips table: id, from_user, to_creator, amount, stripe_txn, status, created_at
-            - analytics_views table: id, date, user_id, content_id, view_count, duration, device_type, referrer
-            
-            🎯 GENERATE THE COMPLETE PRODUCTION-READY TOYSOLDIERS PLATFORM EXACTLY AS SPECIFIED IN THE 1,700+ LINE YAML!
-            " --allow-all-tools
-            
-            # Verify generated files exist
+            # Verify and report generation results
             if [ -d "$OUT_DIR" ]; then
-              echo "✅ Generated real codebase in $OUT_DIR"
+              echo "✅ Generated $OUT_DIR with $(find "$OUT_DIR" -type f | wc -l) files"
               ls -la "$OUT_DIR"
-              echo "📁 Backend structure:"
-              ls -la "$OUT_DIR/backend" || true
-              echo "📁 Frontend structure:"
-              ls -la "$OUT_DIR/frontend" || true
-              echo "📁 Database structure:"
-              ls -la "$OUT_DIR/database" || true
-              echo "📁 Infrastructure structure:"
-              ls -la "$OUT_DIR/infra" || true
-              echo "📁 Documentation structure:"
-              ls -la "$OUT_DIR/docs" || true
+              git add "$OUT_DIR" 2>/dev/null || true
             else
               echo "❌ Failed to generate $OUT_DIR"
+              ls -la .
             fi
-            
-            # Add all generated files to git
-            git add "$OUT_DIR" 2>/dev/null || true
           done
           
-          # Commit all generated artifacts
-          git config user.name "YAML-to-Code Generator"
-          git config user.email "yaml-generator@github.com"
-          git commit -m "Generated real codebase from YAML specifications" || echo "No changes to commit"
+          # Commit generated codebase
+          git config user.name "YAML Factory"
+          git config user.email "factory@toysoldiers.space"
+          git commit -m "Generate deterministic codebase from YAML specification" || echo "No changes"
           git push
