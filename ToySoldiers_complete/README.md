@@ -1,2 +1,0 @@
-# ToySoldiers
-Auto-generated project.

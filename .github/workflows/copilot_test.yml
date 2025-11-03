@@ -1,0 +1,35 @@
+name: Copilot CLI Test
+on:
+  push:
+    paths: ["test_copilot_trigger.txt"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  test_copilot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Node.js v22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          
+      - name: Test GitHub Copilot CLI Authentication
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+        run: |
+          # Install the NEW standalone Copilot CLI
+          npm install -g @github/copilot
+          
+          echo "Testing Copilot CLI authentication..."
+          echo "GH_TOKEN length: ${#GH_TOKEN}"
+          echo "GITHUB_TOKEN length: ${#GITHUB_TOKEN}"
+          
+          # Test authentication with simple prompt
+          copilot -p "Say 'Hello World' and confirm you are GitHub Copilot CLI working in GitHub Actions" --allow-all-tools
