@@ -102,7 +102,7 @@ jobs:
             
             Generate COMPLETE, WORKING, PRODUCTION-READY code - no templates, no placeholders, no TODOs.
             Make everything immediately runnable and deployable.
-            " --allow-all-tools --no-interactive || echo "Copilot generation completed"
+            " --allow-all-tools || echo "Copilot generation completed"
             
             # Generate API documentation
             python3 tools/build_docs.py "$f" || true
