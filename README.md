@@ -132,14 +132,25 @@ repo-root/
 └── archive/sample_generations/     # Example inputs/outputs for reference
 ```
 
-## 🔄 Automated Pipeline Flow
+## 🔄 Enhanced Automated Pipeline Flow
 
-1. **Validation** - Checks YAML syntax and schema compliance
-2. **Doc Generation** - Creates OpenAPI and JSON Schema files automatically  
-3. **Auto-Approval** - Automatic approval mechanism (no human intervention required)
-4. **Production Build** - Copilot CLI generates complete codebase headlessly
+1. **Validation** - Checks YAML syntax and schema compliance across all manifests
+2. **Doc Generation** - Creates OpenAPI and JSON Schema files automatically from each manifest
+3. **Auto-Approval** - Automatic approval mechanism (no human intervention required)  
+4. **Production Build** - Copilot CLI generates complete codebase with workspace isolation:
+   - Extracts dynamic project metadata from YAML
+   - Creates isolated `[ProjectName]_complete/` directories  
+   - Uses secure `fs(read,write)` permissions only
+   - Fresh Copilot context for each project
 5. **Test & Ship** - Runs tests, auto-merges on green, creates issues on red
 6. **Deploy Complete** - Final deployment verification and tagging
+
+### Security & Isolation Features
+
+- **Workspace Isolation** - Each project builds in its own directory context
+- **No Shell Access** - Copilot restricted to file system operations only
+- **Context Cleaning** - Fresh generation context prevents data leakage
+- **Project-Agnostic** - Dynamic metadata extraction, no hardcoded assumptions
 
 ## 🛠️ Local Development
 
@@ -192,9 +203,11 @@ python tools/build_docs.py
 
 ### Multi-Project Support
 
-- Each manifest becomes its own complete project
-- Isolated `[name]_complete/` directories
-- Easy extraction to standalone repositories
+- **Zero Data Leak** - Complete workspace isolation between projects
+- **Dynamic Project Names** - Extracts actual project metadata from YAML manifests
+- **Secure Tool Access** - Restricted to `fs(read,write)` only, no shell access
+- **Context Isolation** - Each project builds in its own `[ProjectName]_complete/` directory
+- **Copilot Context Cleaning** - Fresh context for every project generation
 
 ### Auto-Healing Pipeline
 
@@ -208,7 +221,10 @@ This system is battle-tested for:
 
 - ✅ **Headless CI/CD** - No manual steps required
 - ✅ **Error Recovery** - Auto-healing on failures  
-- ✅ **Multi-tenancy** - Multiple projects in one repo
+- ✅ **Multi-Project Isolation** - Zero data leak between builds with `[ProjectName]_complete/` directories
+- ✅ **Dynamic Metadata Extraction** - Project-agnostic with YAML-driven configuration
+- ✅ **Secure Tool Access** - Restricted Copilot permissions (`fs(read,write)` only)
+- ✅ **Context Isolation** - Fresh Copilot context for every project generation
 - ✅ **Audit Compliance** - Full paper trail
 - ✅ **Security** - Controlled access via GitHub permissions
 - ✅ **Scalability** - Handles dozens of concurrent projects

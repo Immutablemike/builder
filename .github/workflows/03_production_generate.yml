@@ -4,6 +4,8 @@ on:
     workflows: ["02 Prepare Confirmation"]
     types: [completed]
   workflow_dispatch:
+  issue_comment:
+    types: [created]
 
 permissions:
   contents: write
@@ -11,6 +13,7 @@ permissions:
 
 jobs:
   generate:
+    if: ${{ github.event.workflow_run.conclusion == 'success' || github.event_name == 'workflow_dispatch' || contains(github.event.comment.body, '✅') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -30,16 +33,22 @@ jobs:
           
           for f in briefs/*_Stack.yaml; do
             NAME=$(basename "$f" _Stack.yaml)
-            OUT_DIR="${NAME,,}"
+            OUT_DIR="${NAME}_complete"
             
-            # Clean any existing output for fresh generation
+            # Clean any existing output for fresh generation and workspace isolation
             rm -rf "$OUT_DIR" 2>/dev/null || true
+            mkdir -p "$OUT_DIR"
             
-            echo "🚀 Generating $OUT_DIR from YAML specification..."
+            # Extract project metadata from YAML
+            PROJECT_NAME=$(python3 -c "import yaml; print(yaml.safe_load(open('$f')).get('project', '$NAME'))")
+            
+            echo "🚀 Generating $OUT_DIR for project: $PROJECT_NAME"
             echo "📖 Processing $(wc -c < "$f") character YAML manifest..."
             
-            # Generate using simplified prompt approach
-            copilot -p "You are a YAML-to-Codebase Factory. Read the provided YAML repo_tree section and generate EXACTLY that directory structure with working FastAPI + Expo code. No placeholders, no TODO comments. Generate complete ToySoldiers platform from YAML specification: $(cat "$f")" --allow-all-tools
+            # Clean Copilot context and generate with workspace isolation
+            cd "$OUT_DIR"
+            copilot -p "You are a YAML-to-Codebase Factory. Generate a complete codebase for project '$PROJECT_NAME' based on this YAML specification. Write all files in current directory. No placeholders, no TODO comments. YAML spec: $(cat ../$f)" --allow-tool "fs(read,write)" --no-tty
+            cd ..
             
             # Verify and report generation results
             if [ -d "$OUT_DIR" ]; then

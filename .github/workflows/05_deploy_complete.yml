@@ -1,7 +1,7 @@
 name: 05 Deploy Complete
 on:
   workflow_run:
-    workflows: ["03 Production Generate", "Generate Project from Brief"]
+    workflows: ["03 Production Generate"]
     types: [completed]
   workflow_dispatch:
 
