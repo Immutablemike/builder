@@ -51,61 +51,111 @@ jobs:
             YAML MANIFEST CONTENT:
             $(cat "$f")
             
-            REQUIREMENTS:
-            1. Create complete project in Toy_Soldiers_completedly_agentic/ directory at repository root
-            2. Follow ALL specifications in the YAML manifest exactly
-            3. Generate working FastAPI backend services for each component:
-               - backend/core/auth/ (Supabase + FastAPI auth gateway)
-               - backend/core/payments/ (Stripe Connect integration) 
-               - backend/core/analytics/ (PostHog + metrics)
-               - backend/core/content_api/ (CRUD + media transcoding)
-               - backend/core/chat/ (Comments + live chat)
-               - backend/creator/ (Creator workflow services)
-               - backend/fan/ (Fan workflow services)
-               - backend/gateway/ (API gateway + routing)
-            4. Create React Native Expo frontend applications:
-               - frontend/creator_app/ (iOS/Android creator app)
-               - frontend/fan_app/ (iOS/Android fan app)
-               - frontend/shared_ui/ (Reusable components)
-               - frontend/web/ (Optional Next.js dashboard)
-            5. Generate complete database schemas in database/:
-               - schema.sql with all tables (users, content, comments, tips)
-               - seed_data.sql
-               - migration files
-            6. Create infrastructure configuration:
-               - docker-compose.yml for local development
-               - terraform/ for Cloudflare, Supabase, Stripe
-               - caddy/ configuration
-            7. Generate deployment and automation:
-               - .github/workflows/ for CI/CD
-               - scripts/ for deployment and management
-               - clients/ for auto-generated SDKs
-            8. Create comprehensive documentation:
-               - README.md with complete setup instructions
-               - API documentation as ${API_SPEC}
-               - JSON schema as ${SCHEMA_FILE}
-               - docs/ folder with architecture diagrams
+            CRITICAL REQUIREMENTS - GENERATE EVERYTHING FROM THE YAML:
             
-            IMPLEMENTATION DETAILS:
+            1. CREATE COMPLETE MODULAR MONOREPO in Toy_Soldiers_completedly_agentic/ directory:
+               
+               ROOT LEVEL FILES:
+               - README.md (comprehensive setup, architecture overview, quick start)
+               - PROGRESS.md (project status, milestones, completion tracking)
+               - .env.example (all required environment variables from YAML)
+               - .gitignore (comprehensive for Python, Node.js, secrets)
+               - Makefile (setup, build, test, deploy, lint commands)
+               - docker-compose.yml (local development stack)
+               - requirements.txt (if Python dependencies needed at root)
+               - package.json (if Node.js dependencies needed at root)
+               - openapi.yaml (complete API specification)
+               - project.json (project metadata and guardrails)
+               
+            2. BACKEND/ DIRECTORY - Complete FastAPI microservices:
+               backend/
+               ├── core/
+               │   ├── auth/ (Supabase + FastAPI auth gateway)
+               │   │   ├── main.py, routes/, models/, tests/, Dockerfile, requirements.txt
+               │   ├── payments/ (Stripe Connect integration) 
+               │   │   ├── main.py, routes/, models/, tests/, Dockerfile, requirements.txt
+               │   ├── analytics/ (PostHog + metrics)
+               │   │   ├── main.py, collectors/, dashboards/, tests/, Dockerfile, requirements.txt
+               │   ├── content_api/ (CRUD + media transcoding)
+               │   │   ├── main.py, routes/, models/, tests/, Dockerfile, requirements.txt
+               │   └── chat/ (Comments + live chat)
+               │       ├── main.py, routes/, models/, websocket/, tests/, Dockerfile, requirements.txt
+               ├── creator/ (Creator workflow services)
+               │   ├── upload_service/, dashboard_service/, profile_service/
+               ├── fan/ (Fan workflow services)
+               │   ├── discovery_service/, interaction_service/
+               └── gateway/ (API gateway + routing)
+                   ├── main.py, routes/, nginx.conf, Dockerfile
+               
+            3. FRONTEND/ DIRECTORY - Complete Expo + React Native apps:
+               frontend/
+               ├── creator_app/ (Expo app for creators)
+               │   ├── app.json, package.json, src/screens/, src/components/, src/hooks/, src/utils/
+               ├── fan_app/ (Expo app for fans)
+               │   ├── app.json, package.json, src/screens/, src/components/, src/hooks/, src/utils/
+               ├── shared_ui/ (Reusable components)
+               │   ├── VideoCard.tsx, CommentBox.tsx, PlayerControls.tsx, TipButton.tsx
+               └── web/ (Optional Next.js dashboard)
+                   ├── pages/, package.json
+               
+            4. DATABASE/ DIRECTORY - Complete PostgreSQL schemas:
+               database/
+               ├── schema.sql (all tables: users, creators, content, comments, tips, analytics_views)
+               ├── seed_data.sql (sample data for development)
+               ├── migrations/ (001_init.sql, 002_add_comments.sql, 003_add_tips.sql)
+               └── README.md (database setup and migration instructions)
+               
+            5. INFRA/ DIRECTORY - Complete infrastructure configuration:
+               infra/
+               ├── docker-compose.yml (local development stack)
+               ├── terraform/ (main.tf, variables.tf for Cloudflare, Supabase, Stripe)
+               ├── caddy/ (Caddyfile, ssl/)
+               └── README.md (infrastructure setup instructions)
+               
+            6. CLIENTS/ DIRECTORY - Auto-generated SDKs:
+               clients/
+               ├── typescript/ (openapi.ts)
+               └── python/ (toysoldiers_client/)
+               
+            7. SCRIPTS/ DIRECTORY - Deployment and management scripts:
+               scripts/
+               ├── deploy.sh, seed_posthog.py, migrate_db.sh, lint_all.sh, generate_sdk.sh
+               
+            8. DOCS/ DIRECTORY - Comprehensive documentation:
+               docs/
+               ├── ToySoldiers_Stack.yaml (copy of this file)
+               ├── ToySoldiers_API_OpenAPI.yaml (complete OpenAPI 3.1 spec)
+               ├── ToySoldiers_API_Schema.json (JSON Schema validation)
+               ├── creator_flow.md, fan_flow.md
+               └── architecture_diagram.mmd (Mermaid system diagram)
+               
+            9. .GITHUB/ DIRECTORY - Complete CI/CD workflows:
+               .github/workflows/
+               ├── validate_openapi.yml, build_backend.yml, build_frontend.yml
+               ├── deploy_staging.yml, deploy_production.yml, generate_sdk.yml, test_suite.yml
+            
+            IMPLEMENTATION REQUIREMENTS:
             - Use FastAPI with async/await for all backend services
-            - Use Expo SDK 50+ for React Native apps
+            - Use Expo SDK 50+ for React Native apps  
             - Use Supabase for authentication and database
             - Use Cloudflare R2 for media storage
             - Use Stripe Connect for payments
             - Use LiveKit for live streaming
             - Use PostHog for analytics
-            - Include comprehensive error handling
-            - Add proper logging and monitoring
+            - Include comprehensive error handling and logging
             - Generate working Docker configurations
-            - Create proper CI/CD workflows
+            - Create complete CI/CD workflows
             - Include security best practices
+            - Follow the exact architecture specified in the YAML
+            
+            CRITICAL: Generate COMPLETE, WORKING, PRODUCTION-READY code - no templates, no placeholders, no TODOs.
+            Every file must be immediately runnable and deployable. Follow the YAML specification exactly.
+            Create the complete modular monorepo structure as documented in the repo_tree section.
+            "
             
             Generate COMPLETE, WORKING, PRODUCTION-READY code - no templates, no placeholders, no TODOs.
             Make everything immediately runnable and deployable.
             " --allow-all-tools || echo "Copilot generation completed"
-            
-            # Generate API documentation
-            python3 tools/build_docs.py "$f" || true
             
             # Verify generated files exist
             if [ -d "$OUT_DIR" ]; then
@@ -115,12 +165,18 @@ jobs:
               ls -la "$OUT_DIR/backend" || true
               echo "📁 Frontend structure:"
               ls -la "$OUT_DIR/frontend" || true
+              echo "📁 Database structure:"
+              ls -la "$OUT_DIR/database" || true
+              echo "📁 Infrastructure structure:"
+              ls -la "$OUT_DIR/infra" || true
+              echo "📁 Documentation structure:"
+              ls -la "$OUT_DIR/docs" || true
             else
               echo "❌ Failed to generate $OUT_DIR"
             fi
             
             # Add all generated files to git
-            git add "$OUT_DIR" "$API_SPEC" "$SCHEMA_FILE" 2>/dev/null || true
+            git add "$OUT_DIR" 2>/dev/null || true
           done
           
           # Commit all generated artifacts
