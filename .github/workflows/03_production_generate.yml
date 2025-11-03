@@ -39,8 +39,8 @@ jobs:
             rm -rf "$OUT_DIR" 2>/dev/null || true
             mkdir -p "$OUT_DIR"
             
-            # Extract project metadata from YAML
-            PROJECT_NAME=$(python3 -c "import yaml; print(yaml.safe_load(open('$f')).get('project', '$NAME'))")
+            # Extract project metadata from YAML (handle both project_meta and project structures)
+            PROJECT_NAME=$(python3 -c "import yaml; spec = yaml.safe_load(open('$f')); print(spec.get('project_meta', {}).get('name', spec.get('project', '$NAME')))")
             
             echo "🚀 Generating $OUT_DIR for project: $PROJECT_NAME"
             echo "📖 Processing $(wc -c < "$f") character YAML manifest..."
