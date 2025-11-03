@@ -47,7 +47,7 @@ jobs:
             
             # Clean Copilot context and generate with workspace isolation
             cd "$OUT_DIR"
-            copilot -p "You are a YAML-to-Codebase Factory. Generate a complete codebase for project '$PROJECT_NAME' based on this YAML specification. Write all files in current directory. No placeholders, no TODO comments. YAML spec: $(cat ../$f)" --allow-tool "fs(read,write)" --no-tty
+            copilot -p "You are a YAML-to-Codebase Factory. Generate a complete codebase for project '$PROJECT_NAME' based on this YAML specification. Write all files in current directory. No placeholders, no TODO comments. YAML spec: $(cat ../$f)" --allow-tool "fs(read,write)"
             cd ..
             
             # Verify and report generation results
