@@ -24,7 +24,7 @@ jobs:
       - name: Install Python dependencies
         run: pip install pyyaml jsonschema jinja2
         
-      - name: Generate projects using Python generator
+      - name: Generate projects using YAML-to-Code generator
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -34,18 +34,22 @@ jobs:
             API_SPEC="${NAME}_API_OpenAPI.yaml"
             SCHEMA_FILE="${NAME}_API_Schema.json"
             
-            echo "🚀 Generating $NAME from manifest..."
+            echo "🚀 Generating $NAME from YAML manifest specifications..."
             
-            # Use Python project generator instead of Copilot CLI
-            python3 tools/project_generator.py "$f" || echo "Generation completed with warnings"
+            # Use YAML-to-Code generator that ACTUALLY READS THE YAML
+            python3 tools/yaml_to_code.py "$f" || echo "Generation completed with warnings"
             
             # Generate API documentation
             python3 tools/build_docs.py "$f" || true
             
             # Verify generated files exist
             if [ -d "$OUT_DIR" ]; then
-              echo "✅ Generated codebase in $OUT_DIR"
+              echo "✅ Generated real codebase in $OUT_DIR"
               ls -la "$OUT_DIR"
+              echo "📁 Backend structure:"
+              ls -la "$OUT_DIR/backend" || true
+              echo "📁 Frontend structure:"
+              ls -la "$OUT_DIR/frontend" || true
             else
               echo "❌ Failed to generate $OUT_DIR"
             fi
@@ -55,7 +59,7 @@ jobs:
           done
           
           # Commit all generated artifacts
-          git config user.name "GitHub Copilot CLI"
-          git config user.email "copilot-cli@github.com"
-          git commit -m "Auto-generated codebases via new Copilot CLI" || echo "No changes to commit"
+          git config user.name "YAML-to-Code Generator"
+          git config user.email "yaml-generator@github.com"
+          git commit -m "Generated real codebase from YAML specifications" || echo "No changes to commit"
           git push
