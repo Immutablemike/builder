@@ -1,0 +1,33 @@
+name: 04 Ship on Green
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  test_and_ship:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install -r requirements.txt || true
+      - run: pytest --maxfail=1 --disable-warnings -q || echo fail > fail.txt
+      - name: Merge or reopen
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if [ -f fail.txt ]; then
+            gh pr comment ${{ github.event.pull_request.number }} --body "❌ Tests failed – reopen confirmation."
+            gh issue create --title "Failed build ${GITHUB_SHA::7}" --body "CI failed, please review manifest." --label failed-build
+            exit 1
+          fi
+          gh pr comment ${{ github.event.pull_request.number }} --body "✅ Green build – merged."
+          gh pr merge ${{ github.event.pull_request.number }} --merge
+          git tag -a "release-${GITHUB_SHA::7}" -m "Auto release"
+          git push origin --tags

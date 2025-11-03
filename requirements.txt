@@ -1,0 +1,13 @@
+# Dependencies for the YAML-to-Codebase Factory
+
+# Core dependencies for manifest processing
+pyyaml>=6.0.1
+jsonschema>=4.19.0
+jinja2>=3.1.2
+
+# Optional dependencies for testing
+pytest>=7.4.0
+pytest-json-report>=1.5.0
+
+# GitHub CLI tool is required but installed separately:
+# brew install gh  # or equivalent for your platform

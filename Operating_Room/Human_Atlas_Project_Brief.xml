@@ -1,0 +1,835 @@
+<ProjectBrief>
+  <!-- ===================================================== -->
+  <!--              HUMAN ATLAS V2 CANONICAL BRIEF           -->
+  <!-- ===================================================== -->
+
+  <ProjectMeta>
+    <ProjectName>Human Atlas</ProjectName>
+    <Version>2.0</Version>
+    <Classification>Commercial / Research / AI Infrastructure</Classification>
+    <PrimaryArchitect>Immutablemike</PrimaryArchitect>
+    <Date>2025-10-20</Date>
+    <Governance>Immutability.Space / Valor Point Ventures LLC</Governance>
+    <CoreMission>Capture, understand, and commercialize the full expressive bandwidth of humanity—voice, face, emotion, environment—as data.</CoreMission>
+    <Summary>
+      Human Atlas is a two-tiered data acquisition and enrichment platform comprising:
+      1) a mobile/native web app, and 2) public touchscreen kiosks. 
+      Both record 90-second multimodal sessions of human expression and contextual data 
+      (audio, video, geospatial, environmental) and convert them into structured, anonymized, 
+      and vectorized datasets for machine learning use. Each participant consents to this 
+      data exchange via a secure in-app flow, with payment (via Stripe MVP, P2P phase 2) as compensation 
+      for their participation. Every session is “coached” by an AI using LiveKit + Chatterbox 
+      for multilingual natural conversation and emotional engagement.
+    </Summary>
+  </ProjectMeta>
+
+  <Mission>
+    <Objective>
+      To create the world’s richest human-centric dataset by capturing authentic, emotional, and environmental context 
+      through structured short interactions. Human Atlas bridges cultural data divides by collecting 
+      linguistic, paralinguistic, and sociocultural signals at scale—building a universal dataset of human behavior.
+    </Objective>
+    <Outcome>
+      Enriched multimodal data pipelines tuned for resale to LLM/ML research orgs, institutions, and data marketplaces. 
+      Each dataset includes standardized schema definitions, embeddings, authenticity scores, 
+      and edge-derived human-value metrics (charisma, confidence, socioeconomic inference, etc.).
+    </Outcome>
+    <ValueProposition>
+      <Tagline>“Get paid to be human.”</Tagline>
+      Human Atlas transforms lived experience into data capital. Participants earn compensation for sharing authentic 
+      expressions, while AI systems gain access to contextual human data needed to reason beyond text.
+    </ValueProposition>
+  </Mission>
+
+  <Scope>
+    <FunctionalScope>
+      Human Atlas operates across two core interfaces:
+      <Interface name="WebApp">
+        Mobile-first React/Next.js app using Supabase OAuth for authentication.
+        Provides multilingual voice/video session capture via LiveKit + Chatterbox.
+        Runs on Hetzner Cloud with Cloudflare Edge CDN for performance.
+      </Interface>
+      <Interface name="TouchscreenKiosk">
+        Offline-tolerant Electron app, leveraging the same stack and UI.
+        Supports NFC check-in and Stripe Terminal for payment capture.
+        Records high-fidelity environmental and facial data from local sensors.
+      </Interface>
+    </FunctionalScope>
+
+    <TechnicalScope>
+      <Stack>
+        <Backend>FastAPI 3.11, Supabase (Postgres), Redis (Broker), Celery (Tasks), Qdrant (Vectors), Neo4j (Relationships)</Backend>
+        <AIStack>PyTorch, WhisperX, FinBERT, FastText, HuggingFace Transformers, CLIP-ViT-B/32, Pydub, Librosa, OpenFace, Mediapipe</AIStack>
+        <Infra>Docker Compose, Caddy, Hetzner Cloud (Compute), Cloudflare (R2 + Edge + KV), RunPod (GPU bursts)</Infra>
+        <Frontend>Next.js + TypeScript + Tailwind + Shadcn/UI</Frontend>
+        <Integration>Stripe (Payout), Dropbox Sign (Legal Consent), Supabase Auth (OAuth/KYC), Cloudflare Workers (Triggers)</Integration>
+      </Stack>
+
+      <EdgeModules>
+        Edge processing runs lightweight inference on device or near-edge GPU nodes.
+        Captures facial analysis, gaze, posture, tone, micro-emotion, and contextual markers
+        (lighting, background, noise). Inferences are reduced to anonymized vectors before upload.
+      </EdgeModules>
+
+      <Orchestration>
+        DAG orchestrated through Python DAG and JSON DAG definitions.
+        Each stage (Ingest → Enrich → Score → Package) is stateless and event-driven.
+        Task workers (Celery) communicate via Redis queues and log to ClickHouse.
+      </Orchestration>
+    </TechnicalScope>
+
+    <Boundaries>
+      <InScope>
+        Data capture, enrichment, anonymization, consent management, payout, packaging, and resale.
+      </InScope>
+      <OutOfScope>
+        Large-scale model training (datasets only, no model fine-tuning within Human Atlas).
+        No real-time matchmaking, moderation, or chat features beyond the recording session.
+      </OutOfScope>
+    </Boundaries>
+  </Scope>
+
+  <SystemContext>
+    <PrimaryActors>
+      <Actor name="Participant">Human user contributing data for compensation.</Actor>
+      <Actor name="AI Coach">Multilingual interactive assistant guiding user sessions.</Actor>
+      <Actor name="Data Broker">System component managing dataset packaging and sale.</Actor>
+      <Actor name="Research Buyer">External entity purchasing curated datasets.</Actor>
+    </PrimaryActors>
+
+    <Ecosystem>
+      <Element name="Supabase">Authentication, relational DB, API interface, RLS enforcement.</Element>
+      <Element name="Qdrant">Stores vector embeddings (text, audio, image, multimodal).</Element>
+      <Element name="Cloudflare R2">Raw file storage for session media (encrypted at rest).</Element>
+      <Element name="Redis">Transient message and job broker for Celery task orchestration.</Element>
+      <Element name="Neo4j">Graph relationships between users, locations, and context features.</Element>
+      <Element name="ClickHouse">Event analytics and bias monitoring.</Element>
+    </Ecosystem>
+  </SystemContext>
+
+  <Architecture>
+    <Overview>
+      The Human Atlas system is modular, microservice-based, and designed for deterministic reproducibility. 
+      Each component can operate independently or within a Docker Compose cluster. The primary orchestration 
+      mechanism is DAG-driven (Python DAG + JSON DAG definition), ensuring reproducible, traceable execution 
+      from ingestion through enrichment and packaging.
+    </Overview>
+
+    <Pipelines>
+      <Pipeline name="DataIngestion">
+        <Purpose>Capture multimodal data streams from user sessions (audio, video, environmental, metadata).</Purpose>
+        <Flow>
+          <Step id="1">Initialize session via Supabase Auth; validate KYC and Dropbox Sign consent.</Step>
+          <Step id="2">LiveKit WebRTC channel established; Chatterbox AI begins interactive coaching.</Step>
+          <Step id="3">Capture raw video/audio stream; extract device and environmental metadata (GPS, ambient noise, light, temp).</Step>
+          <Step id="4">Store raw assets temporarily in Cloudflare R2 bucket (r2://sessions/raw/).</Step>
+          <Step id="5">Emit Redis event “session_ingested” for downstream processing.</Step>
+        </Flow>
+        <Output>Raw session media, context.json, ingest_metadata.json</Output>
+      </Pipeline>
+
+      <Pipeline name="Enrichment">
+        <Purpose>Transform raw session data into structured, analyzable multimodal embeddings.</Purpose>
+        <Flow>
+          <Step id="1">Extract speech via WhisperX and transcribe multilingual text with timestamps.</Step>
+          <Step id="2">Perform sentiment and tone analysis via FinBERT + FastText embedding.</Step>
+          <Step id="3">Run visual analysis (OpenFace + Mediapipe) for facial landmarks, micro-expression tagging.</Step>
+          <Step id="4">Geotag + environmental data enrichment (OpenWeather API, location-based socioeconomic tagging).</Step>
+          <Step id="5">Chunk and vectorize all text/audio/vision data using Qdrant + CLIP embeddings.</Step>
+        </Flow>
+        <Output>enriched_session.parquet, session_vectors.qdrant, feature_metadata.json</Output>
+      </Pipeline>
+
+      <Pipeline name="EdgeIntelligence">
+        <Purpose>Infer and encode aesthetic, behavioral, and socioeconomic metadata in near-real time.</Purpose>
+        <Flow>
+          <Step id="1">Receive stream endpoint from Enrichment pipeline.</Step>
+          <Step id="2">Process visual/audio inputs locally (Jetson / Runpod Edge GPU).</Step>
+          <Step id="3">Generate Edge features: attractiveness_score, rizz_index, fashion_cluster, socioecon_proxy, etc.</Step>
+          <Step id="4">Upload Edge embeddings and aggregate metrics to Postgres + Parquet.</Step>
+          <Step id="5">Record model version and bias metrics in ClickHouse bias_log.</Step>
+        </Flow>
+        <Runtime>Celery workers (queue: ai_edge)</Runtime>
+        <Output>edge_features.parquet, edge_inferences.sql, bias_log.sql</Output>
+      </Pipeline>
+
+      <Pipeline name="Commercialization">
+        <Purpose>Prepare enriched data for packaging, resale, and controlled API access by research partners.</Purpose>
+        <Flow>
+          <Step id="1">Aggregate all session-level data and associated derived embeddings.</Step>
+          <Step id="2">Run ROI + authenticity scoring models.</Step>
+          <Step id="3">Validate dataset completeness and generate Parquet/YAML schema manifest.</Step>
+          <Step id="4">Encrypt dataset; push to Cloudflare R2 under r2://datasets/.</Step>
+          <Step id="5">Register dataset metadata in Supabase (dataset_registry table).</Step>
+        </Flow>
+        <Output>human_atlas_dataset_vX.parquet, dataset_registry.json</Output>
+      </Pipeline>
+
+      <Pipeline name="PaymentAndAuth">
+        <Purpose>Handle user onboarding, consent, and Stripe payouts.</Purpose>
+        <Flow>
+          <Step id="1">Supabase Social OAuth (Google, Apple, Facebook).</Step>
+          <Step id="2">KYC verification via Stripe Connect.</Step>
+          <Step id="3">Dropbox Sign digital consent for data usage terms.</Step>
+          <Step id="4">Stripe payout (phase 1) or P2P transfer (Cash App, Venmo, Apple Pay phase 2).</Step>
+          <Step id="5">Record payment completion in Supabase payouts table.</Step>
+        </Flow>
+        <Output>payouts.sql, consent_logs.sql</Output>
+      </Pipeline>
+
+      <Pipeline name="GovernanceAndAudit">
+        <Purpose>Ensure consent validity, bias tracking, and compliance with ethical data collection standards.</Purpose>
+        <Flow>
+          <Step id="1">Audit task triggers after dataset generation.</Step>
+          <Step id="2">Store participant consent and versioned policy hash in consent_log.</Step>
+          <Step id="3">Run periodic bias drift monitoring (ClickHouse analytics job).</Step>
+          <Step id="4">Version control schema and model diffs (git hooks).</Step>
+        </Flow>
+        <Output>bias_log.sql, consent_audit.json</Output>
+      </Pipeline>
+    </Pipelines>
+
+    <Services>
+      <Service name="API Gateway">
+        <Framework>FastAPI</Framework>
+        <Endpoints>
+          /session/start  
+          /session/upload  
+          /edge/infer  
+          /dataset/export  
+          /stripe/payout  
+          /audit/report
+        </Endpoints>
+        <Security>JWT tokens, Supabase Row-Level Security, Cloudflare Access</Security>
+      </Service>
+
+      <Service name="AI Coach">
+        <Stack>LiveKit + Chatterbox + Whisper + TTS (multilingual)</Stack>
+        <Languages>English, Spanish, French, Portuguese, Arabic, Hindi, Mandarin, Swahili, Indonesian, Turkish, Vietnamese</Languages>
+        <Behavior>Contextually adaptive, sentiment-aware, voice-mirroring AI guiding user conversation.</Behavior>
+        <Runtime>Docker container “ai_coach”</Runtime>
+      </Service>
+
+      <Service name="Vector Engine">
+        <Stack>Qdrant + Supabase hybrid sync (via Supabase Functions)</Stack>
+        <Function>Store, query, and manage embeddings for search, clustering, and resale indexing.</Function>
+        <Runtime>Docker container “vector_engine”</Runtime>
+      </Service>
+
+      <Service name="Edge Intelligence">
+        <Description>Performs on-device inference for aesthetic and behavioral metrics. Operates under the ai_edge worker group.</Description>
+        <Runtime>Celery GPU workers; deployable to Jetson or Runpod micro instances.</Runtime>
+        <Dependencies>mediapipe, openface, torchvision, empath, librosa, finbert, fasttext</Dependencies>
+      </Service>
+
+      <Service name="Dataset Packager">
+        <Stack>DuckDB + Polars + Parquet writer + Cloudflare R2 SDK</Stack>
+        <Function>Assemble and encrypt final datasets. Generate .yaml manifest for schema and metadata export.</Function>
+      </Service>
+
+      <Service name="Bias Monitor">
+        <Stack>ClickHouse + Grafana + Prometheus</Stack>
+        <Function>Track demographic and geographic distribution bias across Edge and Enrichment outputs.</Function>
+        <Outputs>bias_log.sql, bias_dashboard.json</Outputs>
+      </Service>
+
+      <Service name="Commercial API">
+        <Function>Provide read-only access for approved research buyers via tokenized endpoints.</Function>
+        <Endpoints>/datasets/list, /datasets/{id}, /datasets/{id}/download</Endpoints>
+        <Security>API key via Supabase Functions, IP whitelisting, signed URL tokens.</Security>
+      </Service>
+    </Services>
+
+    <Infrastructure>
+      <Containerization>
+        <Orchestrator>Docker Compose + optional K8s for distributed kiosk deployments</Orchestrator>
+        <Containers>
+          api_gateway  
+          ai_coach  
+          vector_engine  
+          ai_edge  
+          dataset_packager  
+          bias_monitor  
+          supabase  
+          redis  
+          qdrant  
+          clickhouse  
+          caddy_proxy  
+        </Containers>
+      </Containerization>
+      <Networks>internal_docker_net, ai_stack_net, external_proxy_net</Networks>
+      <Storage>Cloudflare R2 (raw/enriched/datasets), Supabase (structured), Neo4j (graph)</Storage>
+    </Infrastructure>
+  </Architecture>
+
+  <DataStructures>
+    <Overview>
+      Human Atlas maintains a relational + vector + object store hybrid.  
+      All primary data is normalized in Postgres (Supabase), embeddings live in Qdrant, 
+      and media objects persist in Cloudflare R2.  
+      Edge and Commercialization layers extend this model via Parquet exports and 
+      YAML schemas to standardize resale datasets.
+    </Overview>
+
+    <RelationalSchema>
+      <Database name="supabase_postgres">
+        <Tables>
+
+          <Table name="participants">
+            <Description>Authenticated human users contributing sessions.</Description>
+            <Fields>
+              id UUID PRIMARY KEY,  
+              email TEXT UNIQUE,  
+              display_name TEXT,  
+              kyc_status TEXT,  
+              stripe_account_id TEXT,  
+              created_at TIMESTAMP DEFAULT NOW()
+            </Fields>
+            <Security>Row-Level Security enabled via Supabase auth.uid()</Security>
+          </Table>
+
+          <Table name="sessions">
+            <Description>Each 90 sec recording event (web or kiosk).</Description>
+            <Fields>
+              id UUID PRIMARY KEY,  
+              participant_id UUID REFERENCES participants(id),  
+              location_lat FLOAT8,  
+              location_lon FLOAT8,  
+              environment_temp FLOAT4,  
+              environment_noise FLOAT4,  
+              weather_context JSONB,  
+              started_at TIMESTAMP,  
+              ended_at TIMESTAMP,  
+              raw_uri TEXT (R2 object path),  
+              enriched_uri TEXT,  
+              edge_uri TEXT
+            </Fields>
+          </Table>
+
+          <Table name="enrichments">
+            <Description>Text/audio/vision features extracted from each session.</Description>
+            <Fields>
+              id BIGSERIAL PRIMARY KEY,  
+              session_uuid UUID REFERENCES sessions(id),  
+              transcript TEXT,  
+              sentiment FLOAT4,  
+              tone_vector FLOAT8[],  
+              emotion_tags TEXT[],  
+              embedding_id UUID REFERENCES qdrant_embeddings(id),  
+              created_at TIMESTAMP DEFAULT NOW()
+            </Fields>
+          </Table>
+
+          <Table name="edge_metrics">
+            <Description>Aggregated aesthetic + behavioral scores from Edge Intelligence.</Description>
+            <Fields>
+              session_uuid UUID PRIMARY KEY REFERENCES sessions(id),  
+              attractiveness_score NUMERIC(4,3),  
+              confidence_tone NUMERIC(4,3),  
+              rizz_index NUMERIC(4,3),  
+              fashion_cluster TEXT,  
+              socioecon_proxy NUMERIC(6,3),  
+              stress_index NUMERIC(4,3),  
+              charisma_vector FLOAT8[],  
+              cultural_expressiveness_index NUMERIC(4,3),  
+              contextual_roi_score NUMERIC(4,3),  
+              model_version TEXT,  
+              created_at TIMESTAMP DEFAULT NOW()
+            </Fields>
+          </Table>
+
+          <Table name="payouts">
+            <Description>Tracks participant compensation for each session.</Description>
+            <Fields>
+              id BIGSERIAL PRIMARY KEY,  
+              participant_id UUID REFERENCES participants(id),  
+              session_uuid UUID REFERENCES sessions(id),  
+              amount NUMERIC(6,2),  
+              currency TEXT DEFAULT 'USD',  
+              method TEXT DEFAULT 'Stripe',  
+              status TEXT,  
+              created_at TIMESTAMP DEFAULT NOW()
+            </Fields>
+          </Table>
+
+          <Table name="dataset_registry">
+            <Description>Catalog of packaged datasets ready for sale or API access.</Description>
+            <Fields>
+              id BIGSERIAL PRIMARY KEY,  
+              dataset_name TEXT,  
+              version TEXT,  
+              parquet_uri TEXT,  
+              yaml_schema TEXT,  
+              record_count INT,  
+              total_size_mb FLOAT4,  
+              created_at TIMESTAMP DEFAULT NOW()
+            </Fields>
+          </Table>
+
+          <Table name="bias_log">
+            <Description>Bias and drift tracking for Edge and Enrichment models.</Description>
+            <Fields>
+              id BIGSERIAL PRIMARY KEY,  
+              model_name TEXT,  
+              demographic_group TEXT,  
+              bias_score NUMERIC(5,3),  
+              sample_size INT,  
+              metric TEXT,  
+              created_at TIMESTAMP DEFAULT NOW()
+            </Fields>
+          </Table>
+
+        </Tables>
+      </Database>
+    </RelationalSchema>
+
+    <VectorSchema>
+      <Database name="qdrant_vectors">
+        <Collections>
+          <Collection name="session_embeddings">
+            <VectorSize>1536</VectorSize>
+            <DistanceMetric>cosine</DistanceMetric>
+            <PayloadKeys>session_uuid, modality (text|audio|vision), timestamp</PayloadKeys>
+          </Collection>
+          <Collection name="edge_embeddings">
+            <VectorSize>512</VectorSize>
+            <DistanceMetric>dot</DistanceMetric>
+            <PayloadKeys>feature_name, confidence, model_version</PayloadKeys>
+          </Collection>
+        </Collections>
+      </Database>
+    </VectorSchema>
+
+    <ObjectStorage>
+      <Provider>Cloudflare R2</Provider>
+      <Buckets>
+        <Bucket name="sessions/raw" purpose="temporary intake"/>
+        <Bucket name="sessions/enriched" purpose="post-processing storage"/>
+        <Bucket name="datasets" purpose="final commercial packages"/>
+      </Buckets>
+      <Encryption>AES-256 server-side + signed URLs for access</Encryption>
+    </ObjectStorage>
+
+    <ParquetSchemas>
+      <Schema name="enriched_session.parquet">
+        <Fields>session_uuid, transcript, sentiment, emotion_tags[], tone_vector[], embedding_uri</Fields>
+        <Compression>zstd</Compression>
+        <Destination>r2://sessions/enriched/</Destination>
+      </Schema>
+
+      <Schema name="edge_features.parquet" ref="edge_features.yaml">
+        <Fields>session_uuid, attractiveness_score, confidence_tone, rizz_index, fashion_cluster,
+          socioecon_proxy, stress_index, charisma_vector[16], cultural_expressiveness_index, contextual_roi_score</Fields>
+        <Compression>zstd</Compression>
+        <Destination>r2://sessions/enriched/edge/</Destination>
+      </Schema>
+
+      <Schema name="human_atlas_dataset_vX.parquet" ref="dataset.yaml">
+        <Fields>participant_public_id, session_uuid, geo_region, language, authenticity_score, roi_score, all_edge_features*</Fields>
+        <Compression>zstd</Compression>
+        <Destination>r2://datasets/</Destination>
+      </Schema>
+    </ParquetSchemas>
+
+    <YAMLSchemas>
+      <Reference file="schemas/edge_features.yaml" version="1.0"/>
+      <Reference file="schemas/dataset.yaml" version="1.0"/>
+    </YAMLSchemas>
+
+    <GraphSchema>
+      <Database name="neo4j_graph">
+        <Nodes>Participant, Session, EmotionTag, Location</Nodes>
+        <Relationships>
+          (Participant)-[:RECORDED]->(Session)  
+          (Session)-[:CONTAINS]->(EmotionTag)  
+          (Session)-[:LOCATED_AT]->(Location)
+        </Relationships>
+      </Database>
+    </GraphSchema>
+  </DataStructures>
+
+  <Governance>
+    <Overview>
+      Human Atlas treats consent, transparency, and fairness as inseparable from data quality.  
+      Every interaction — from capture through commercialization — is logged, signed, and auditable.  
+      Governance runs as a persistent background process using Supabase triggers, ClickHouse events,  
+      and signed Dropbox Sign artifacts.
+    </Overview>
+
+    <ConsentFramework>
+      <Layer name="KYC_and_Identity">
+        <Provider>Stripe Connect (verified individual accounts)</Provider>
+        <Fields>first_name, last_name, dob, email, country, ip_hash</Fields>
+        <Storage>Supabase table `participants` with hashed PII columns</Storage>
+        <Policy>Only non-PII references are shared outside the core DB.</Policy>
+      </Layer>
+
+      <Layer name="DropboxSign_Contractual">
+        <Description>Digitally signed consent for data recording and commercial resale.</Description>
+        <Artifact>Base64-encoded PDF stored in `consent_log` with hash fingerprint.</Artifact>
+        <Validation>Hash checked at dataset packaging time to verify license continuity.</Validation>
+      </Layer>
+
+      <Layer name="Internal_Form_Vetting">
+        <Purpose>Filter participants for intent and eligibility before recording.</Purpose>
+        <Storage>Supabase table `vetting_forms` linked by participant_id.</Storage>
+      </Layer>
+
+      <Layer name="Immutable_Consent_Audit">
+        <Storage>ClickHouse `consent_audit` log with timestamp and SHA256 policy hash.</Storage>
+        <Replication>Nightly replication to Cloudflare R2 under r2://audit/consent/</Replication>
+      </Layer>
+    </ConsentFramework>
+
+    <PrivacyAndSecurity>
+      <Policy>Privacy by Design / Anonymization First</Policy>
+      <Mechanisms>
+        <Anonymization>
+          Replace faces with hash-derived feature vectors only when exporting datasets.
+          Strip audio of unique voiceprint signatures during Edge embedding stage.
+        </Anonymization>
+        <Encryption>
+          <AtRest>AES-256 on R2 and Supabase</AtRest>
+          <InTransit>TLS 1.3 via Cloudflare Edge</InTransit>
+        </Encryption>
+        <AccessControl>
+          RLS (Supabase), JWT exp = 1 hour, signed URL for dataset download ≤ 10 minutes.
+        </AccessControl>
+      </Mechanisms>
+      <RedactionPolicy>
+        Upon user account closure, raw media deleted but derived vectors retained under license grant.
+      </RedactionPolicy>
+    </PrivacyAndSecurity>
+
+    <BiasAndFairness>
+      <Monitoring>
+        <Tooling>ClickHouse + Grafana dashboard (bias_dashboard.json)</Tooling>
+        <Metrics>
+          gender_balance, regional_representation, language_distribution, age_proxy, lighting_conditions
+        </Metrics>
+        <Alerts>Prometheus rules trigger Slack alert if bias_score &gt; 0.15.</Alerts>
+      </Monitoring>
+      <Mitigation>
+        Weighted sampling for dataset exports to ensure demographic balance.
+      </Mitigation>
+      <AuditCycle>Weekly bias review with automatic PDF summary to audit bucket.</AuditCycle>
+    </BiasAndFairness>
+
+    <ModelVersioning>
+      <Policy>All models versioned semantically (edge_model_vN, enrich_model_vN).</Policy>
+      <Registry>Supabase table `model_versions` with sha256 weights hash and training metadata.</Registry>
+      <UpgradePath>
+        Edge → Shadow deploy → Dual run → Promote on stability &gt; 95%.
+      </UpgradePath>
+    </ModelVersioning>
+
+    <AuditAndLogging>
+      <CentralLog>
+        ClickHouse cluster (logs, events, metrics) aggregates from Celery, API, and Edge workers.
+      </CentralLog>
+      <DataLineage>
+        Each Parquet export includes `lineage.json` containing hashes of source files and model versions.
+      </DataLineage>
+      <IncidentResponse>
+        If breach or anomaly detected, auto-disable dataset distribution and rotate keys via Vaultwarden API.
+      </IncidentResponse>
+    </AuditAndLogging>
+
+    <EthicalUse>
+      <Statement>
+        Human Atlas data may be used only for AI training, research, and creative applications that respect human dignity.  
+        Prohibited uses include surveillance, profiling, or discriminatory scoring without explicit consent.
+      </Statement>
+      <License>
+        <Type>Human Data Commons License v1.0 (Custom)</Type>
+        <Terms>
+          Commercial use allowed with royalty payment or equity swap per dataset contract.  
+          Redistribution requires maintaining metadata integrity and license link.
+        </Terms>
+      </License>
+    </EthicalUse>
+  </Governance>
+
+  <Economics>
+    <Overview>
+      Human Atlas treats each human session as a micro-asset.  
+      The system automatically prices, pays, and packages those assets into datasets,  
+      forming an on-chain-ready ledger of data capital.  
+      Phase 1 uses Stripe Connect for fiat payouts; Phase 2 extends to tokenized rails.
+    </Overview>
+
+    <CompensationModel>
+      <BaseRate>
+        <USDPerHour>60.00</USDPerHour>
+        <USDPerSession>1.50</USDPerSession>
+        <SessionLength>90 seconds</SessionLength>
+      </BaseRate>
+      <Multipliers>
+        <EdgeQuality weight="0.3">+0 – 25 % depending on data richness (clarity, emotion, diversity)</EdgeQuality>
+        <AuthenticityScore weight="0.4">+0 – 50 % based on FinBERT + Edge composite</AuthenticityScore>
+        <LanguageScarcity weight="0.3">+0 – 40 % for low-resource or under-represented languages</LanguageScarcity>
+      </Multipliers>
+      <TotalPayout>
+        payout = base × (1 + Σ weighted multipliers)
+      </TotalPayout>
+    </CompensationModel>
+
+    <PaymentInfrastructure>
+      <Provider>Stripe Connect Custom Accounts</Provider>
+      <Flow>
+        <Step id="1">Participant completes KYC via Stripe</Step>
+        <Step id="2">Session validated → Edge metrics posted → authenticity score calculated</Step>
+        <Step id="3">Supabase function `issue_payout()` creates Stripe transfer</Step>
+        <Step id="4">Webhook logs payout status in `payouts` table</Step>
+      </Flow>
+      <FutureExpansion>
+        <P2P>Cash App / Venmo / Apple Pay / Google Pay</P2P>
+        <DigitalWallets>USDC / ETH / SOL token distribution via smart contract</DigitalWallets>
+      </FutureExpansion>
+    </PaymentInfrastructure>
+
+    <DataValuationEngine>
+      <Inputs>
+        <Feature>Edge Scores (aesthetic, confidence, socioeconomic)</Feature>
+        <Feature>Authenticity Composite (FinBERT tone × stress inverse)</Feature>
+        <Feature>Geo-Diversity and Linguistic Coverage</Feature>
+        <Feature>Environmental richness (weather, noise, light)</Feature>
+      </Inputs>
+      <Algorithm>
+        ROI Score = 0.25 × Authenticity + 0.25 × EdgeComposite + 0.25 × Diversity + 0.25 × ContextRichness
+      </Algorithm>
+      <Classification>
+        ROI &gt; 0.8 → Tier A “Premium” Dataset  
+        ROI 0.5 – 0.8 → Tier B “Standard”  
+        ROI &lt; 0.5 → Tier C “Supplemental”
+      </Classification>
+      <Output>roi_scores.parquet</Output>
+    </DataValuationEngine>
+
+    <DatasetPackaging>
+      <Process>
+        <Step id="1">Aggregate sessions by Tier classification</Step>
+        <Step id="2">Join enrichments + edge metrics + authenticity + geo context</Step>
+        <Step id="3">Apply balance weights for bias mitigation</Step>
+        <Step id="4">Generate `human_atlas_dataset_vN.parquet` and YAML manifest</Step>
+        <Step id="5">Upload to `r2://datasets/` and register in `dataset_registry`</Step>
+      </Process>
+      <SchemaRef>schemas/dataset.yaml</SchemaRef>
+    </DatasetPackaging>
+
+    <MarketplaceIntegration>
+      <API>
+        <Endpoint>/datasets/list (GET)</Endpoint>
+        <Endpoint>/datasets/{id}/download (POST signed URL)</Endpoint>
+        <Endpoint>/datasets/{id}/metadata (GET)</Endpoint>
+      </API>
+      <Monetization>
+        <PriceFloor>
+          <TierA>$2 000 per GB</TierA>
+          <TierB>$1 000 per GB</TierB>
+          <TierC>$500 per GB</TierC>
+        </PriceFloor>
+        <Royalty>10 % creator royalty to participant pool</Royalty>
+        <PaymentSplit>70 % Immutability.Space / 20 % Investor Fund / 10 % Royalty Pool</PaymentSplit>
+      </Monetization>
+      <Distribution>
+        <Channel>Direct API License Sales</Channel>
+        <Channel>Data Marketplace (Abacus, Hugging Face Datasets, AI Commons)</Channel>
+        <Channel>Private Institutional Deals (Meta, OpenAI, Anthropic, Google DeepMind)</Channel>
+      </Distribution>
+    </MarketplaceIntegration>
+
+    <TokenizationFramework>
+      <Phase2>
+        <AssetType>Proof-of-Presence NFT (ERC-1155)</AssetType>
+        <MintCondition>When session approved + payout complete</MintCondition>
+        <Metadata>
+          authenticity_score, roi_score, timestamp, session_uuid, license_hash
+        </Metadata>
+        <Storage>IPFS / Arweave hybrid with Cloudflare gateway</Storage>
+        <Purpose>Traceable data-lineage and royalty distribution for secondary sales</Purpose>
+      </Phase2>
+    </TokenizationFramework>
+
+    <FinancialGovernance>
+      <Ledger>Supabase `payouts` table synced to QuickBooks / Firefly III via API</Ledger>
+      <Reporting>
+        <Monthly>Income + dataset sales summary</Monthly>
+        <Quarterly>ROI curve and participant earnings distribution</Quarterly>
+      </Reporting>
+      <Auditing>
+        <Tool>Posthog + Grafana Financial Dashboard</Tool>
+        <Export>PDF → R2://reports/finance/</Export>
+      </Auditing>
+    </FinancialGovernance>
+
+    <GrowthModel>
+      <Phase1>MVP – Stripe + WebApp + Kiosk + Dataset Exports</Phase1>
+      <Phase2>P2P Wallet + Tokenized Proof of Presence</Phase2>
+      <Phase3>Automated royalty and dataset exchange on chain (DEX integration)</Phase3>
+      <Phase4>Licensing API for synthetic data generation partners</Phase4>
+    </GrowthModel>
+  </Economics>
+
+  <Appendices>
+
+    <RepositoryStructure>
+      <Description>
+        Monorepo for Human Atlas — production-ready, deterministic scaffolding.
+        Each service, schema, and DAG aligns with the sections above.
+      </Description>
+      <Tree>
+        /
+        ├── backend/
+        │   ├── main.py
+        │   ├── api/
+        │   │   ├── routes/
+        │   │   ├── auth/
+        │   │   └── payments/
+        │   ├── workers/
+        │   │   ├── ai_edge/
+        │   │   ├── enrichment/
+        │   │   └── packaging/
+        │   ├── models/
+        │   ├── utils/
+        │   ├── dag/
+        │   │   ├── dag.py
+        │   │   └── dag.json
+        │   └── tests/
+        ├── frontend/
+        │   ├── next.config.js
+        │   ├── pages/
+        │   ├── components/
+        │   └── kiosk/
+        ├── infra/
+        │   ├── docker-compose.yml
+        │   ├── init.sql
+        │   ├── Caddyfile
+        │   ├── prometheus.yml
+        │   └── grafana/
+        ├── schemas/
+        │   ├── edge_features.yaml
+        │   ├── dataset.yaml
+        │   └── lineage.json
+        ├── env/
+        │   ├── .env.example
+        │   └── secrets.vault
+        ├── docs/
+        │   ├── HUMAN_ATLAS_v2_CANONICAL.xml
+        │   └── LICENSE.txt
+        └── notebooks/
+            ├── analysis.ipynb
+            └── bias_report.ipynb
+      </Tree>
+    </RepositoryStructure>
+
+    <EnvironmentVariables>
+      <Description>Baseline configuration for local + production deployment.</Description>
+      <File name=".env.example">
+        SUPABASE_URL=https://api.humanatlas.io
+        SUPABASE_KEY=${SUPABASE_SERVICE_ROLE}
+        REDIS_URL=redis://redis:6379/0
+        QDRANT_URL=http://qdrant:6333
+        NEO4J_URL=bolt://neo4j:7687
+        STRIPE_SECRET=${STRIPE_SECRET_KEY}
+        DROPBOX_SIGN_KEY=${DROPBOX_API_KEY}
+        CLOUDFARE_ACCOUNT_ID=${CF_ACCOUNT}
+        R2_ACCESS_KEY=${R2_KEY}
+        R2_SECRET_KEY=${R2_SECRET}
+        R2_BUCKET=sessions
+        OPENAI_API_KEY=${OPENAI_KEY}
+        HUGGINGFACE_TOKEN=${HF_TOKEN}
+        WHISPER_MODEL=medium
+        CLIP_MODEL=ViT-B/32
+        FINBERT_MODEL=finbert-tone
+        JWT_SECRET=${JWT_SECRET}
+        LOG_LEVEL=INFO
+        ENV=production
+      </File>
+    </EnvironmentVariables>
+
+    <DAGOrchestration>
+      <Overview>
+        Deterministic orchestration ensures repeatable session lifecycle:
+        ingestion → enrichment → edge → packaging → audit → payout.
+      </Overview>
+      <dag.py>
+        <Tasks>
+          session_ingest → enrich_session → edge_infer → package_dataset → issue_payout → audit_consent
+        </Tasks>
+        <Hooks>
+          on_failure: rollback_dataset()
+          on_success: log_event("pipeline_complete")
+        </Hooks>
+      </dag.py>
+      <dag.json>
+        {
+          "nodes":[
+            {"id":"ingest","next":"enrich"},
+            {"id":"enrich","next":"edge"},
+            {"id":"edge","next":"package"},
+            {"id":"package","next":"payout"},
+            {"id":"payout","next":"audit"}
+          ],
+          "metadata":{
+            "owner":"Immutability.Space",
+            "version":"2.0",
+            "trigger":"redis_event"
+          }
+        }
+      </dag.json>
+    </DAGOrchestration>
+
+    <MonitoringAndObservability>
+      <Tools>Prometheus + Grafana + Loki + Tempo + Uptime Kuma</Tools>
+      <Dashboards>
+        system_health.json  
+        bias_dashboard.json  
+        finance_overview.json  
+        edge_performance.json
+      </Dashboards>
+      <Alerts>Email + Slack via Alertmanager webhook</Alerts>
+    </MonitoringAndObservability>
+
+    <DeploymentNotes>
+      <Local>
+        docker compose up --build  
+        accessible at http://localhost:8080
+      </Local>
+      <Cloud>
+        Deploy via Terraform to Hetzner; Cloudflare handles DNS + CDN.  
+        Runpod GPU pools auto-scale ai_edge workers by queue depth.
+      </Cloud>
+    </DeploymentNotes>
+
+    <ValidationXSD>
+      <![CDATA[
+      <?xml version="1.0" encoding="UTF-8"?>
+      <xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema">
+        <xs:element name="ProjectBrief">
+          <xs:complexType>
+            <xs:sequence>
+              <xs:element name="ProjectMeta" type="xs:string"/>
+              <xs:element name="Mission" type="xs:string"/>
+              <xs:element name="Scope" type="xs:string"/>
+              <xs:element name="Architecture" type="xs:string"/>
+              <xs:element name="DataStructures" type="xs:string"/>
+              <xs:element name="Governance" type="xs:string"/>
+              <xs:element name="Economics" type="xs:string"/>
+              <xs:element name="Appendices" type="xs:string"/>
+            </xs:sequence>
+          </xs:complexType>
+        </xs:element>
+      </xs:schema>
+      ]]>
+    </ValidationXSD>
+
+    <Integrity>
+      <HashAlgorithm>SHA256</HashAlgorithm>
+      <Commit>auto-generated at build time by CI</Commit>
+      <Verification>Agents validate XML hash before Makefile execution.</Verification>
+    </Integrity>
+
+  </Appendices>
+
+</ProjectBrief>

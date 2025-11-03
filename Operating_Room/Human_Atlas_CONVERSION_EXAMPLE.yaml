@@ -1,0 +1,282 @@
+# Generated from Human_Atlas_Project_Brief.xml on 2025-11-02
+# XML-to-YAML Conversion Example - NOT COMPLETE
+project_meta:
+  name: "Human Atlas"
+  version: "2.0"
+  description: "Capture, understand, and commercialize the full expressive bandwidth of humanity—voice, face, emotion, environment—as data"
+  owner: "Immutablemike / Immutability.Space"
+  classification: "Commercial / Research / AI Infrastructure"
+  repo_structure: "monorepo"
+  deployment_strategy: "cloud"
+  tagline: "Get paid to be human"
+
+environments:
+  development:
+    description: "Local development with Docker Compose"
+    compose_file: "docker-compose.yml"
+    services: ["supabase", "redis", "qdrant", "clickhouse", "caddy_proxy"]
+  staging:
+    description: "Hetzner Cloud staging environment"
+    domain: "staging.humanatlas.io"
+  production:
+    description: "Hetzner Cloud with Cloudflare Edge CDN"
+    domain: "api.humanatlas.io"
+
+repo_tree: |
+  /
+  ├── backend/
+  │   ├── main.py
+  │   ├── api/
+  │   │   ├── routes/
+  │   │   ├── auth/
+  │   │   └── payments/
+  │   ├── workers/
+  │   │   ├── ai_edge/
+  │   │   ├── enrichment/
+  │   │   └── packaging/
+  │   ├── models/
+  │   ├── utils/
+  │   ├── dag/
+  │   │   ├── dag.py
+  │   │   └── dag.json
+  │   └── tests/
+  ├── frontend/
+  │   ├── next.config.js
+  │   ├── pages/
+  │   ├── components/
+  │   └── kiosk/
+  ├── infra/
+  │   ├── docker-compose.yml
+  │   ├── init.sql
+  │   ├── Caddyfile
+  │   ├── prometheus.yml
+  │   └── grafana/
+  ├── schemas/
+  │   ├── edge_features.yaml
+  │   ├── dataset.yaml
+  │   └── lineage.json
+  ├── env/
+  │   ├── .env.example
+  │   └── secrets.vault
+  ├── docs/
+  │   ├── HUMAN_ATLAS_v2_CANONICAL.xml
+  │   └── LICENSE.txt
+  └── notebooks/
+      ├── analysis.ipynb
+      └── bias_report.ipynb
+
+backend_services:
+  api_gateway:
+    framework: "FastAPI 3.11"
+    endpoints:
+      - "/session/start"
+      - "/session/upload"
+      - "/edge/infer"
+      - "/dataset/export"
+      - "/stripe/payout"
+      - "/audit/report"
+    security: "JWT tokens, Supabase Row-Level Security, Cloudflare Access"
+    
+  ai_coach:
+    stack: "LiveKit + Chatterbox + Whisper + TTS"
+    languages: ["English", "Spanish", "French", "Portuguese", "Arabic", "Hindi", "Mandarin", "Swahili", "Indonesian", "Turkish", "Vietnamese"]
+    behavior: "Contextually adaptive, sentiment-aware, voice-mirroring AI guiding user conversation"
+    runtime: "Docker container ai_coach"
+    
+  vector_engine:
+    stack: "Qdrant + Supabase hybrid sync"
+    function: "Store, query, and manage embeddings for search, clustering, and resale indexing"
+    runtime: "Docker container vector_engine"
+    
+  edge_intelligence:
+    description: "On-device inference for aesthetic and behavioral metrics"
+    runtime: "Celery GPU workers; deployable to Jetson or Runpod micro instances"
+    dependencies: ["mediapipe", "openface", "torchvision", "empath", "librosa", "finbert", "fasttext"]
+    
+  dataset_packager:
+    stack: "DuckDB + Polars + Parquet writer + Cloudflare R2 SDK"
+    function: "Assemble and encrypt final datasets with YAML manifest generation"
+    
+  bias_monitor:
+    stack: "ClickHouse + Grafana + Prometheus"
+    function: "Track demographic and geographic distribution bias"
+    outputs: ["bias_log.sql", "bias_dashboard.json"]
+
+frontend_services:
+  web_app:
+    framework: "Next.js + TypeScript + Tailwind + Shadcn/UI"
+    description: "Mobile-first React/Next.js app using Supabase OAuth"
+    features: ["multilingual voice/video session capture", "LiveKit + Chatterbox integration"]
+    hosting: "Hetzner Cloud with Cloudflare Edge CDN"
+    
+  touchscreen_kiosk:
+    framework: "Electron app"
+    description: "Offline-tolerant kiosk using same stack and UI"
+    features: ["NFC check-in", "Stripe Terminal payment capture", "high-fidelity environmental data"]
+
+infrastructure:
+  containerization:
+    orchestrator: "Docker Compose + optional K8s for distributed kiosk deployments"
+    containers:
+      - "api_gateway"
+      - "ai_coach"
+      - "vector_engine"
+      - "ai_edge"
+      - "dataset_packager"
+      - "bias_monitor"
+      - "supabase"
+      - "redis"
+      - "qdrant"
+      - "clickhouse"
+      - "caddy_proxy"
+  networks: ["internal_docker_net", "ai_stack_net", "external_proxy_net"]
+  storage: "Cloudflare R2 (raw/enriched/datasets), Supabase (structured), Neo4j (graph)"
+  monitoring: "Prometheus + Grafana + Loki + Tempo + Uptime Kuma"
+
+database_schemas:
+  postgres:
+    tables:
+      participants:
+        description: "Authenticated human users contributing sessions"
+        fields:
+          id: "UUID PRIMARY KEY"
+          email: "TEXT UNIQUE"
+          display_name: "TEXT"
+          kyc_status: "TEXT"
+          stripe_account_id: "TEXT"
+          created_at: "TIMESTAMP DEFAULT NOW()"
+        security: "Row-Level Security enabled via Supabase auth.uid()"
+        
+      sessions:
+        description: "Each 90 sec recording event (web or kiosk)"
+        fields:
+          id: "UUID PRIMARY KEY"
+          participant_id: "UUID REFERENCES participants(id)"
+          location_lat: "FLOAT8"
+          location_lon: "FLOAT8"
+          environment_temp: "FLOAT4"
+          environment_noise: "FLOAT4"
+          weather_context: "JSONB"
+          started_at: "TIMESTAMP"
+          ended_at: "TIMESTAMP"
+          raw_uri: "TEXT (R2 object path)"
+          enriched_uri: "TEXT"
+          edge_uri: "TEXT"
+          
+      edge_metrics:
+        description: "Aggregated aesthetic + behavioral scores from Edge Intelligence"
+        fields:
+          session_uuid: "UUID PRIMARY KEY REFERENCES sessions(id)"
+          attractiveness_score: "NUMERIC(4,3)"
+          confidence_tone: "NUMERIC(4,3)"
+          rizz_index: "NUMERIC(4,3)"
+          fashion_cluster: "TEXT"
+          socioecon_proxy: "NUMERIC(6,3)"
+          stress_index: "NUMERIC(4,3)"
+          charisma_vector: "FLOAT8[]"
+          cultural_expressiveness_index: "NUMERIC(4,3)"
+          contextual_roi_score: "NUMERIC(4,3)"
+          model_version: "TEXT"
+          created_at: "TIMESTAMP DEFAULT NOW()"
+          
+  qdrant:
+    collections:
+      session_embeddings:
+        vector_size: 1536
+        distance_metric: "cosine"
+        payload_keys: ["session_uuid", "modality (text|audio|vision)", "timestamp"]
+      edge_embeddings:
+        vector_size: 512
+        distance_metric: "dot"
+        payload_keys: ["feature_name", "confidence", "model_version"]
+        
+  neo4j:
+    nodes: ["Participant", "Session", "EmotionTag", "Location"]
+    relationships:
+      - "(Participant)-[:RECORDED]->(Session)"
+      - "(Session)-[:CONTAINS]->(EmotionTag)"
+      - "(Session)-[:LOCATED_AT]->(Location)"
+
+api_contracts:
+  openapi_version: "3.0.3"
+  base_url: "https://api.humanatlas.io/v1"
+  endpoints:
+    session_start:
+      path: "/session/start"
+      method: "POST"
+      description: "Initialize new session with participant authentication"
+    session_upload:
+      path: "/session/upload"
+      method: "POST"
+      description: "Upload recorded session media and metadata"
+    edge_infer:
+      path: "/edge/infer"
+      method: "POST"
+      description: "Process session through Edge Intelligence pipeline"
+    dataset_export:
+      path: "/dataset/export"
+      method: "GET"
+      description: "Export packaged datasets for commercial use"
+
+environment_variables:
+  supabase:
+    SUPABASE_URL: "https://api.humanatlas.io"
+    SUPABASE_KEY: "${SUPABASE_SERVICE_ROLE}"
+  databases:
+    REDIS_URL: "redis://redis:6379/0"
+    QDRANT_URL: "http://qdrant:6333"
+    NEO4J_URL: "bolt://neo4j:7687"
+  payment:
+    STRIPE_SECRET: "${STRIPE_SECRET_KEY}"
+    DROPBOX_SIGN_KEY: "${DROPBOX_API_KEY}"
+  storage:
+    CLOUDFARE_ACCOUNT_ID: "${CF_ACCOUNT}"
+    R2_ACCESS_KEY: "${R2_KEY}"
+    R2_SECRET_KEY: "${R2_SECRET}"
+    R2_BUCKET: "sessions"
+  ai_models:
+    OPENAI_API_KEY: "${OPENAI_KEY}"
+    HUGGINGFACE_TOKEN: "${HF_TOKEN}"
+    WHISPER_MODEL: "medium"
+    CLIP_MODEL: "ViT-B/32"
+    FINBERT_MODEL: "finbert-tone"
+  security:
+    JWT_SECRET: "${JWT_SECRET}"
+    LOG_LEVEL: "INFO"
+    ENV: "production"
+
+economics:
+  compensation_model:
+    base_rate:
+      usd_per_hour: 60.00
+      usd_per_session: 1.50
+      session_length: "90 seconds"
+    multipliers:
+      edge_quality: "0 - 25% depending on data richness"
+      authenticity_score: "0 - 50% based on FinBERT + Edge composite"
+      language_scarcity: "0 - 40% for low-resource languages"
+  payment_infrastructure:
+    provider: "Stripe Connect Custom Accounts"
+    future_expansion: ["Cash App", "Venmo", "Apple Pay", "USDC", "ETH", "SOL"]
+  pricing:
+    tier_a_premium: "$2000 per GB"
+    tier_b_standard: "$1000 per GB"
+    tier_c_supplemental: "$500 per GB"
+    royalty: "10% creator royalty to participant pool"
+
+governance:
+  consent_framework:
+    kyc_provider: "Stripe Connect"
+    digital_signing: "Dropbox Sign"
+    storage: "Supabase with hashed PII"
+  privacy_security:
+    policy: "Privacy by Design / Anonymization First"
+    encryption_at_rest: "AES-256"
+    encryption_in_transit: "TLS 1.3 via Cloudflare Edge"
+  bias_monitoring:
+    tooling: "ClickHouse + Grafana dashboard"
+    metrics: ["gender_balance", "regional_representation", "language_distribution"]
+    alerts: "Prometheus rules trigger Slack alert if bias_score > 0.15"
+
+# Note: This is a PARTIAL conversion example. Full conversion would require
+# processing all XML sections and creating complete documentation extraction.

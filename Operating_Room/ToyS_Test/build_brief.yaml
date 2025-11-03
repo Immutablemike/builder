@@ -1,0 +1,202 @@
+# ToyS_Test_Stack.yaml
+# Comprehensive Platform Architecture & Implementation Brief
+# Generated from raw chat analysis - Single source of truth for all development
+
+project_meta:
+  name: "Toy Soldiers MVP Platform"
+  description: >
+    Full-stack modular content streaming and monetization platform combining
+    Spotify (audio), YouTube (video), and Patreon (creator funding) paradigms.
+    Built on Supabase, Cloudflare, FastAPI, and Expo — designed for edge delivery,
+    multi-phase scaling, and microservice isolation with explicit Creator/Fan workflow separation.
+  owner: "Immutability.Space / Toy.Soldiers"
+  repo_structure: modular_monorepo
+  deployment_strategy: hybrid_cloud
+  development_approach: training_wheels_first_project
+  
+  # Core Design Principles
+  principles:
+    - modular_by_default: Each service can be built, tested, and deployed independently
+    - workflow_separation: Clear Creator vs Fan paths to prevent development confusion
+    - cloud_native: YAML/JSON over XML/XSD for universal cloud service compatibility
+    - validation_driven: OpenAPI + JSON Schema enforcement replaces custom XSD systems
+    - sdk_generation: Auto-generated TypeScript and Python clients maintain type safety
+    - edge_first: Cloudflare-centric with Hetzner compute fallback
+    
+  deploy_targets:
+    primary:
+      - Hetzner: Core backend services (FastAPI, Docker, Caddy)
+      - Cloudflare: CDN, R2 storage, Workers, Stream, Pages, Zero Trust
+      - Supabase: PostgreSQL, Auth, Realtime, Storage fallback
+      - LiveKit: Live streaming and room management
+    monitoring:
+      - PostHog: Analytics and event tracking
+      - Grafana: System monitoring and alerting
+      - Prometheus: Metrics collection
+      - Uptime Kuma: Service health monitoring
+
+environments:
+  development:
+    description: Local Docker + Cloudflare Tunnel development environment
+    host: "localhost:8000"
+    network: "toysoldiers_dev_net"
+    database: local_supabase
+    storage: local_minio
+    
+  staging:
+    description: Staging deployment on Hetzner with Cloudflare CDN edge
+    domain: "staging.toysoldiers.space"
+    ssl: true
+    database: supabase_staging
+    storage: cloudflare_r2_staging
+    
+  production:
+    description: Live deployment via Hetzner + Cloudflare Zero Trust
+    domain: "app.toysoldiers.space"
+    ssl: true
+    database: supabase_production
+    storage: cloudflare_r2_production
+
+# MODULAR MONOREPO STRUCTURE
+repo_tree: |
+  toysoldiers/
+  │
+  ├── backend/                              # Core backend services
+  │   ├── core/                            # Shared services used by both workflows
+  │   │   ├── auth/                        # Supabase + FastAPI auth gateway
+  │   │   ├── payments/                    # Stripe Connect integration
+  │   │   ├── analytics/                   # PostHog + metrics ingestion
+  │   │   ├── content_api/                 # CRUD + media transcoding → R2
+  │   │   └── chat/                        # Comments + live chat
+  │   ├── creator/                         # Creator-only workflow services
+  │   │   ├── upload_service/
+  │   │   ├── dashboard_service/
+  │   │   └── profile_service/
+  │   ├── fan/                             # Fan-only workflow services
+  │   │   ├── discovery_service/
+  │   │   └── interaction_service/
+  │   └── gateway/                         # API gateway + routing proxy
+  │
+  ├── frontend/                            # Expo + web applications
+  │   ├── creator_app/                     # Expo app for creators
+  │   ├── fan_app/                         # Expo app for fans  
+  │   ├── shared_ui/                       # Reusable components
+  │   └── web/                             # Optional Next.js dashboard
+  │
+  ├── database/
+  │   ├── schema.sql                       # Tables: users, content, comments, tips
+  │   ├── seed_data.sql
+  │   └── migrations/
+  │
+  ├── infra/
+  │   ├── docker-compose.yml               # Local dev (API + Supabase + PostHog)
+  │   ├── terraform/                       # Cloudflare, Supabase, Stripe secrets
+  │   ├── caddy/                           # Reverse proxy
+  │   └── README.md
+  │
+  ├── clients/                             # Auto-generated SDKs
+  │   ├── typescript/
+  │   └── python/
+  │
+  ├── .github/
+  │   └── workflows/                       # CI/CD automation
+  │
+  ├── .env.example
+  ├── Makefile
+  └── README.md
+
+# BACKEND SERVICES ARCHITECTURE
+backend_services:
+  core:
+    description: Shared FastAPI services used by both Creator and Fan workflows
+    runtime: FastAPI + Uvicorn + Gunicorn
+    deployment: Docker Compose (Hetzner) + Cloudflare Workers proxy
+    
+    services:
+      auth_service:
+        path: ./backend/core/auth
+        purpose: Supabase JWT verification, session management, OAuth
+        endpoints:
+          - POST /auth/signup
+          - POST /auth/login  
+          - GET /auth/profile
+          - POST /auth/logout
+        integrations: [Supabase.Auth, PostHog]
+        
+      payments_service:
+        path: ./backend/core/payments
+        purpose: Stripe Connect + webhook processing for tips & subscriptions
+        endpoints:
+          - POST /payments/checkout
+          - POST /payments/webhook
+          - GET /payments/payouts
+          - GET /payments/history
+        integrations: [Stripe.Connect, Supabase.tips, PostHog]
+
+# FRONTEND SERVICES
+frontend_services:
+  creator_app:
+    path: ./frontend/creator_app
+    framework: Expo (React Native + TypeScript)
+    styling: Tailwind + NativeWind
+    target_platforms: [iOS, Android, Web]
+    
+    features:
+      - Creator Authentication & Profile Management
+      - Content Upload (video/audio to Cloudflare R2)
+      - Dashboard (views, tips, followers analytics)
+      - Real-time Chat & Comments
+      - Earnings & Payout Management
+      - Live Streaming Integration
+
+  fan_app:
+    path: ./frontend/fan_app
+    framework: Expo (React Native + TypeScript)
+    styling: Tailwind + NativeWind
+    target_platforms: [iOS, Android, Web]
+    
+    features:
+      - Content Discovery & Personalized Feed
+      - Media Player (audio/video streaming)
+      - Tipping & Creator Support
+      - Comments & Live Chat
+      - Creator Following & Subscriptions
+      - Offline Content Caching
+
+# INFRASTRUCTURE & DEPLOYMENT
+infrastructure:
+  overview:
+    compute:
+      - Hetzner: Primary backend compute (Docker Swarm)
+      - Cloudflare Workers: Edge computing and API acceleration
+    storage:
+      - Cloudflare R2: Primary media storage with global CDN
+      - Cloudflare Stream: Video transcoding and adaptive streaming
+      - Supabase Storage: Fallback for small files and avatars
+    networking:
+      - Cloudflare Zero Trust: Security and access control
+      - Caddy: Reverse proxy with automatic HTTPS
+      - Tailscale: VPN access for development
+
+# ENVIRONMENT VARIABLES
+env_variables:
+  required:
+    # Supabase Configuration
+    SUPABASE_URL: "https://your-project.supabase.co"
+    SUPABASE_ANON_KEY: "public-anon-key"
+    SUPABASE_SERVICE_ROLE_KEY: "service-role-key"
+    
+    # Stripe Configuration
+    STRIPE_SECRET_KEY: "sk_live_... or sk_test_..."
+    STRIPE_WEBHOOK_SECRET: "whsec_..."
+    STRIPE_CONNECT_CLIENT_ID: "ca_..."
+    
+    # Cloudflare Configuration
+    CLOUDFLARE_ACCOUNT_ID: "account-id"
+    CLOUDFLARE_API_TOKEN: "api-token"
+    CLOUDFLARE_R2_ACCESS_KEY: "access-key"
+    CLOUDFLARE_R2_SECRET_KEY: "secret-key"
+    
+    # Application URLs
+    FRONTEND_URL: "https://app.toysoldiers.space"
+    BACKEND_URL: "https://api.toysoldiers.space"

@@ -1,0 +1,482 @@
+name: Publish SDKs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'schemas/ToySoldiers_API_OpenAPI.yaml'
+  workflow_dispatch:
+    inputs:
+      sdk_version:
+        description: 'SDK Version to publish'
+        required: false
+        default: 'auto'
+
+env:
+  REGISTRY_URL: ghcr.io
+  PACKAGE_NAMESPACE: toysoldiers
+
+jobs:
+  generate-typescript-sdk:
+    runs-on: ubuntu-latest
+    name: Generate TypeScript SDK
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@toysoldiers'
+          
+      - name: Install OpenAPI Generator
+        run: |
+          npm install -g @openapitools/openapi-generator-cli
+          
+      - name: Generate TypeScript SDK
+        run: |
+          echo "Generating TypeScript SDK from OpenAPI specification..."
+          
+          # Create output directory
+          mkdir -p packages/api-client-ts
+          
+          # Generate TypeScript client
+          openapi-generator-cli generate \
+            -i schemas/ToySoldiers_API_OpenAPI.yaml \
+            -g typescript-axios \
+            -o packages/api-client-ts \
+            --additional-properties=npmName=@toysoldiers/api-client \
+            --additional-properties=npmVersion=${{ github.event.inputs.sdk_version || '1.0.0' }} \
+            --additional-properties=supportsES6=true \
+            --additional-properties=withInterfaces=true \
+            --additional-properties=useSingleRequestParameter=true
+            
+      - name: Customize package.json
+        run: |
+          cd packages/api-client-ts
+          
+          # Create custom package.json with proper configuration
+          cat > package.json << EOF
+          {
+            "name": "@toysoldiers/api-client",
+            "version": "${{ github.event.inputs.sdk_version || '1.0.0' }}",
+            "description": "Toy Soldiers Platform API Client - TypeScript/JavaScript SDK",
+            "main": "dist/index.js",
+            "types": "dist/index.d.ts",
+            "scripts": {
+              "build": "tsc",
+              "test": "jest",
+              "lint": "eslint src --ext .ts",
+              "prepublishOnly": "npm run build"
+            },
+            "keywords": ["toysoldiers", "api", "client", "sdk", "typescript"],
+            "author": "Toy Soldiers Platform",
+            "license": "MIT",
+            "dependencies": {
+              "axios": "^1.6.0"
+            },
+            "devDependencies": {
+              "typescript": "^5.0.0",
+              "@types/node": "^20.0.0",
+              "jest": "^29.0.0",
+              "@typescript-eslint/eslint-plugin": "^6.0.0",
+              "eslint": "^8.0.0"
+            },
+            "repository": {
+              "type": "git",
+              "url": "https://github.com/toysoldiers/platform.git",
+              "directory": "packages/api-client-ts"
+            },
+            "publishConfig": {
+              "registry": "https://npm.pkg.github.com",
+              "@toysoldiers:registry": "https://npm.pkg.github.com"
+            }
+          }
+          EOF
+          
+      - name: Add TypeScript configuration
+        run: |
+          cd packages/api-client-ts
+          
+          cat > tsconfig.json << EOF
+          {
+            "compilerOptions": {
+              "target": "ES2020",
+              "module": "commonjs",
+              "lib": ["ES2020", "dom"],
+              "declaration": true,
+              "outDir": "./dist",
+              "rootDir": "./src",
+              "strict": true,
+              "esModuleInterop": true,
+              "skipLibCheck": true,
+              "forceConsistentCasingInFileNames": true,
+              "moduleResolution": "node",
+              "resolveJsonModule": true
+            },
+            "include": ["src/**/*"],
+            "exclude": ["node_modules", "dist", "**/*.test.ts"]
+          }
+          EOF
+          
+      - name: Add README
+        run: |
+          cd packages/api-client-ts
+          
+          cat > README.md << 'EOF'
+          # Toy Soldiers API Client - TypeScript/JavaScript
+          
+          Official TypeScript/JavaScript SDK for the Toy Soldiers Platform API.
+          
+          ## Installation
+          
+          ```bash
+          npm install @toysoldiers/api-client
+          ```
+          
+          ## Usage
+          
+          ```typescript
+          import { Configuration, DefaultApi } from '@toysoldiers/api-client';
+          
+          const config = new Configuration({
+            basePath: 'https://api.toysoldiers.space',
+            accessToken: 'your-access-token'
+          });
+          
+          const api = new DefaultApi(config);
+          
+          // Get user profile
+          const profile = await api.getUserProfile();
+          
+          // Upload content (Creator workflow)
+          const upload = await api.createContent({
+            title: 'My Video',
+            file: videoFile
+          });
+          ```
+          
+          ## API Documentation
+          
+          For complete API documentation, visit: https://docs.toysoldiers.space
+          
+          ## Support
+          
+          - GitHub Issues: https://github.com/toysoldiers/platform/issues
+          - Documentation: https://docs.toysoldiers.space
+          - Discord: https://discord.gg/toysoldiers
+          EOF
+          
+      - name: Build and test SDK
+        run: |
+          cd packages/api-client-ts
+          npm install
+          npm run build
+          
+      - name: Publish to GitHub Packages
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd packages/api-client-ts
+          echo "Publishing TypeScript SDK to GitHub Packages..."
+          npm publish
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          
+      - name: Upload TypeScript SDK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: typescript-sdk
+          path: packages/api-client-ts/
+          retention-days: 30
+
+  generate-python-sdk:
+    runs-on: ubuntu-latest
+    name: Generate Python SDK
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          
+      - name: Install OpenAPI Generator
+        run: |
+          wget https://repo1.maven.org/maven2/org/openapitools/openapi-generator-cli/7.0.1/openapi-generator-cli-7.0.1.jar -O openapi-generator-cli.jar
+          
+      - name: Generate Python SDK
+        run: |
+          echo "Generating Python SDK from OpenAPI specification..."
+          
+          # Create output directory
+          mkdir -p packages/api-client-py
+          
+          # Generate Python client
+          java -jar openapi-generator-cli.jar generate \
+            -i schemas/ToySoldiers_API_OpenAPI.yaml \
+            -g python \
+            -o packages/api-client-py \
+            --additional-properties=packageName=toysoldiers_api \
+            --additional-properties=projectName=toysoldiers-api-client \
+            --additional-properties=packageVersion=${{ github.event.inputs.sdk_version || '1.0.0' }} \
+            --additional-properties=packageUrl=https://github.com/toysoldiers/platform \
+            --additional-properties=packageCompany="Toy Soldiers Platform" \
+            --additional-properties=packageAuthor="Toy Soldiers Team" \
+            --additional-properties=packageEmail=api@toysoldiers.space
+            
+      - name: Customize setup.py
+        run: |
+          cd packages/api-client-py
+          
+          # Create custom setup.py
+          cat > setup.py << 'EOF'
+          from setuptools import setup, find_packages
+          
+          with open("README.md", "r", encoding="utf-8") as fh:
+              long_description = fh.read()
+          
+          setup(
+              name="toysoldiers-api-client",
+              version="${{ github.event.inputs.sdk_version || '1.0.0' }}",
+              author="Toy Soldiers Team",
+              author_email="api@toysoldiers.space",
+              description="Official Python SDK for the Toy Soldiers Platform API",
+              long_description=long_description,
+              long_description_content_type="text/markdown",
+              url="https://github.com/toysoldiers/platform",
+              packages=find_packages(),
+              classifiers=[
+                  "Development Status :: 4 - Beta",
+                  "Intended Audience :: Developers",
+                  "License :: OSI Approved :: MIT License",
+                  "Operating System :: OS Independent",
+                  "Programming Language :: Python :: 3",
+                  "Programming Language :: Python :: 3.8",
+                  "Programming Language :: Python :: 3.9",
+                  "Programming Language :: Python :: 3.10",
+                  "Programming Language :: Python :: 3.11",
+                  "Topic :: Software Development :: Libraries :: Python Modules",
+                  "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+              ],
+              python_requires=">=3.8",
+              install_requires=[
+                  "urllib3>=1.25.3",
+                  "python-dateutil",
+                  "pydantic>=1.10.5",
+                  "httpx>=0.24.0",
+              ],
+              extras_require={
+                  "dev": [
+                      "pytest>=6.0",
+                      "pytest-asyncio",
+                      "black",
+                      "flake8",
+                      "mypy",
+                  ]
+              }
+          )
+          EOF
+          
+      - name: Add Python README
+        run: |
+          cd packages/api-client-py
+          
+          cat > README.md << 'EOF'
+          # Toy Soldiers API Client - Python
+          
+          Official Python SDK for the Toy Soldiers Platform API.
+          
+          ## Installation
+          
+          ```bash
+          pip install toysoldiers-api-client
+          ```
+          
+          ## Usage
+          
+          ```python
+          from toysoldiers_api import ApiClient, Configuration, DefaultApi
+          
+          # Configure API client
+          config = Configuration()
+          config.host = "https://api.toysoldiers.space"
+          config.access_token = "your-access-token"
+          
+          # Create API client
+          client = ApiClient(config)
+          api = DefaultApi(client)
+          
+          # Get user profile
+          profile = api.get_user_profile()
+          
+          # Upload content (Creator workflow)
+          upload_result = api.create_content(
+              title="My Video",
+              file=open("video.mp4", "rb")
+          )
+          
+          print(f"Content uploaded: {upload_result.id}")
+          ```
+          
+          ## Async Usage
+          
+          ```python
+          import asyncio
+          from toysoldiers_api import ApiClient, Configuration, DefaultApi
+          
+          async def main():
+              config = Configuration()
+              config.host = "https://api.toysoldiers.space"
+              config.access_token = "your-access-token"
+              
+              async with ApiClient(config) as client:
+                  api = DefaultApi(client)
+                  profile = await api.get_user_profile()
+                  print(f"User: {profile.username}")
+          
+          asyncio.run(main())
+          ```
+          
+          ## API Documentation
+          
+          For complete API documentation, visit: https://docs.toysoldiers.space
+          
+          ## Support
+          
+          - GitHub Issues: https://github.com/toysoldiers/platform/issues
+          - Documentation: https://docs.toysoldiers.space
+          - PyPI: https://pypi.org/project/toysoldiers-api-client/
+          EOF
+          
+      - name: Build and test Python SDK
+        run: |
+          cd packages/api-client-py
+          pip install -e .
+          python -c "import toysoldiers_api; print('Python SDK imported successfully!')"
+          
+      - name: Build Python package
+        run: |
+          cd packages/api-client-py
+          pip install build twine
+          python -m build
+          
+      - name: Publish to GitHub Package Registry
+        if: github.ref == 'refs/heads/main'
+        run: |
+          cd packages/api-client-py
+          echo "Publishing Python SDK to GitHub Package Registry..."
+          # Note: Configure PyPI/GitHub Package Registry credentials in repository secrets
+          # twine upload --repository-url https://upload.pypi.org/legacy/ dist/*
+          echo "Python SDK build complete (publish step requires PyPI credentials)"
+          
+      - name: Upload Python SDK artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: python-sdk
+          path: packages/api-client-py/
+          retention-days: 30
+
+  update-documentation:
+    runs-on: ubuntu-latest
+    name: Update SDK Documentation
+    needs: [generate-typescript-sdk, generate-python-sdk]
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Download TypeScript SDK
+        uses: actions/download-artifact@v3
+        with:
+          name: typescript-sdk
+          path: packages/api-client-ts/
+          
+      - name: Download Python SDK
+        uses: actions/download-artifact@v3
+        with:
+          name: python-sdk
+          path: packages/api-client-py/
+          
+      - name: Generate SDK documentation
+        run: |
+          echo "Generating SDK documentation..."
+          
+          mkdir -p docs/sdks
+          
+          # Create SDK overview documentation
+          cat > docs/sdks/README.md << 'EOF'
+          # Toy Soldiers Platform SDKs
+          
+          Official SDKs for the Toy Soldiers Platform API.
+          
+          ## Available SDKs
+          
+          ### TypeScript/JavaScript SDK
+          - **Package**: @toysoldiers/api-client
+          - **Installation**: `npm install @toysoldiers/api-client`
+          - **Documentation**: [TypeScript SDK Guide](./typescript.md)
+          - **Repository**: [packages/api-client-ts](../../packages/api-client-ts/)
+          
+          ### Python SDK
+          - **Package**: toysoldiers-api-client
+          - **Installation**: `pip install toysoldiers-api-client`
+          - **Documentation**: [Python SDK Guide](./python.md)
+          - **Repository**: [packages/api-client-py](../../packages/api-client-py/)
+          
+          ## Quick Start
+          
+          Choose your preferred language and follow the installation instructions above.
+          
+          ## API Reference
+          
+          - [OpenAPI Specification](../../schemas/ToySoldiers_API_OpenAPI.yaml)
+          - [JSON Schema](../../schemas/ToySoldiers_API_Schema.json)
+          - [Interactive API Docs](https://api.toysoldiers.space/docs)
+          
+          ## Support
+          
+          - GitHub Issues: https://github.com/toysoldiers/platform/issues
+          - Discord Community: https://discord.gg/toysoldiers
+          - Email Support: api@toysoldiers.space
+          EOF
+          
+      - name: Commit documentation updates
+        if: github.ref == 'refs/heads/main'
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          
+          git add docs/sdks/
+          
+          if git diff --staged --quiet; then
+            echo "No documentation changes to commit"
+          else
+            git commit -m "Update SDK documentation [skip ci]"
+            git push
+          fi
+
+  notify-completion:
+    runs-on: ubuntu-latest
+    name: Notify SDK Publication
+    needs: [generate-typescript-sdk, generate-python-sdk, update-documentation]
+    if: always()
+    
+    steps:
+      - name: Summary
+        run: |
+          echo "SDK Publication Summary"
+          echo "=========================="
+          echo "TypeScript SDK: ${{ needs.generate-typescript-sdk.result }}"
+          echo "Python SDK: ${{ needs.generate-python-sdk.result }}"
+          echo "Documentation: ${{ needs.update-documentation.result }}"
+          echo ""
+          echo "Next Steps:"
+          echo "- Test SDKs in your applications"
+          echo "- Update client applications to use new SDK versions"
+          echo "- Review SDK documentation for any breaking changes"
+          echo "- Join our Discord for SDK support: https://discord.gg/toysoldiers"

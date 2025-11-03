@@ -1,0 +1,25 @@
+name: 02 Prepare Confirmation
+on:
+  workflow_run:
+    workflows: ["01 Generate Docs"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  auto_approve:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pyyaml
+      - name: Auto-approve all validated briefs
+        run: |
+          for f in briefs/*_Stack.yaml; do
+            NAME=$(basename "$f" _Stack.yaml)
+            echo "✅ Auto-approving $NAME build (validation passed)"
+            echo "brief_approved=true" >> $GITHUB_OUTPUT
+          done

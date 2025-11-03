@@ -1,0 +1,28 @@
+name: 01 Generate Docs
+on:
+  workflow_run:
+    workflows: ["00 Validate Manifest"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  docs:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pyyaml
+      - name: Generate docs
+        run: |
+          python tools/build_docs.py
+      - name: Commit docs
+        run: |
+          git config user.name "actions"
+          git config user.email "actions@github.com"
+          git add *_API_OpenAPI.yaml *_API_Schema.json || true
+          git commit -m "Auto-generate API docs" || echo "no changes"
+          git push

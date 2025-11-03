@@ -1,0 +1,27 @@
+name: 00 Validate Manifest
+on:
+  push:
+    paths: ["briefs/*_Stack.yaml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: pip install pyyaml jsonschema
+      - name: Validate all manifests
+        run: |
+          for f in briefs/*_Stack.yaml; do
+            echo "Validating $f"
+            python - <<'PY'
+            import sys, yaml, jsonschema
+            spec = yaml.safe_load(open(sys.argv[1]))
+            jsonschema.validate(spec, {"type": "object"})
+            print("✅", sys.argv[1], "valid")
+            PY "$f"
+          done

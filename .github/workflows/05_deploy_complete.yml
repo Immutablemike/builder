@@ -1,0 +1,39 @@
+name: 05 Deploy Complete
+on:
+  workflow_run:
+    workflows: ["03 Production Generate", "Generate Project from Brief"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  deploy:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Verify all artifacts generated
+        run: |
+          echo "🚀 Deployment pipeline complete!"
+          echo "Generated artifacts:"
+          ls -la *_complete/ 2>/dev/null || echo "No complete projects found"
+          ls -la *_API_OpenAPI.yaml 2>/dev/null || echo "No OpenAPI specs found"
+          ls -la *_API_Schema.json 2>/dev/null || echo "No schemas found"
+          
+      - name: Tag successful deployment
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          TAG="auto-deploy-$(date +%Y%m%d-%H%M%S)"
+          git tag -a "$TAG" -m "Auto-deployment: All workflows complete"
+          git push origin "$TAG"
+          echo "✅ Tagged successful deployment: $TAG"
+          
+      - name: Notify completion
+        run: |
+          echo "🎉 Full automation pipeline completed successfully!"
+          echo "All briefs have been processed without human intervention."
