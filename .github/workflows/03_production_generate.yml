@@ -46,116 +46,70 @@ jobs:
             
             # Use the NEW Copilot CLI with the complete YAML content
             copilot -p "
-            You are an expert full-stack developer. Read this comprehensive YAML manifest and generate a complete, production-ready ToySoldiers platform codebase.
+            You are an YAML-to-Codebase Factory. Your job is to read this massive 1,700+ line YAML specification and generate the EXACT modular monorepo structure specified in the repo_tree section.
             
-            YAML MANIFEST CONTENT:
+            YAML MANIFEST CONTENT (READ EVERY LINE):
             $(cat "$f")
             
-            CRITICAL REQUIREMENTS - GENERATE EVERYTHING FROM THE YAML:
+            🚨 CRITICAL: The YAML contains a detailed repo_tree section that specifies EXACTLY what files to create. 
+            Follow the repo_tree EXACTLY - every directory, every file, every route, every component listed.
             
-            1. CREATE COMPLETE MODULAR MONOREPO in Toy_Soldiers_completedly_agentic/ directory:
-               
-               ROOT LEVEL FILES:
-               - README.md (comprehensive setup, architecture overview, quick start)
-               - PROGRESS.md (project status, milestones, completion tracking)
-               - .env.example (all required environment variables from YAML)
-               - .gitignore (comprehensive for Python, Node.js, secrets)
-               - Makefile (setup, build, test, deploy, lint commands)
-               - docker-compose.yml (local development stack)
-               - requirements.txt (if Python dependencies needed at root)
-               - package.json (if Node.js dependencies needed at root)
-               - openapi.yaml (complete API specification)
-               - project.json (project metadata and guardrails)
-               
-            2. BACKEND/ DIRECTORY - Complete FastAPI microservices:
-               backend/
-               ├── core/
-               │   ├── auth/ (Supabase + FastAPI auth gateway)
-               │   │   ├── main.py, routes/, models/, tests/, Dockerfile, requirements.txt
-               │   ├── payments/ (Stripe Connect integration) 
-               │   │   ├── main.py, routes/, models/, tests/, Dockerfile, requirements.txt
-               │   ├── analytics/ (PostHog + metrics)
-               │   │   ├── main.py, collectors/, dashboards/, tests/, Dockerfile, requirements.txt
-               │   ├── content_api/ (CRUD + media transcoding)
-               │   │   ├── main.py, routes/, models/, tests/, Dockerfile, requirements.txt
-               │   └── chat/ (Comments + live chat)
-               │       ├── main.py, routes/, models/, websocket/, tests/, Dockerfile, requirements.txt
-               ├── creator/ (Creator workflow services)
-               │   ├── upload_service/, dashboard_service/, profile_service/
-               ├── fan/ (Fan workflow services)
-               │   ├── discovery_service/, interaction_service/
-               └── gateway/ (API gateway + routing)
-                   ├── main.py, routes/, nginx.conf, Dockerfile
-               
-            3. FRONTEND/ DIRECTORY - Complete Expo + React Native apps:
-               frontend/
-               ├── creator_app/ (Expo app for creators)
-               │   ├── app.json, package.json, src/screens/, src/components/, src/hooks/, src/utils/
-               ├── fan_app/ (Expo app for fans)
-               │   ├── app.json, package.json, src/screens/, src/components/, src/hooks/, src/utils/
-               ├── shared_ui/ (Reusable components)
-               │   ├── VideoCard.tsx, CommentBox.tsx, PlayerControls.tsx, TipButton.tsx
-               └── web/ (Optional Next.js dashboard)
-                   ├── pages/, package.json
-               
-            4. DATABASE/ DIRECTORY - Complete PostgreSQL schemas:
-               database/
-               ├── schema.sql (all tables: users, creators, content, comments, tips, analytics_views)
-               ├── seed_data.sql (sample data for development)
-               ├── migrations/ (001_init.sql, 002_add_comments.sql, 003_add_tips.sql)
-               └── README.md (database setup and migration instructions)
-               
-            5. INFRA/ DIRECTORY - Complete infrastructure configuration:
-               infra/
-               ├── docker-compose.yml (local development stack)
-               ├── terraform/ (main.tf, variables.tf for Cloudflare, Supabase, Stripe)
-               ├── caddy/ (Caddyfile, ssl/)
-               └── README.md (infrastructure setup instructions)
-               
-            6. CLIENTS/ DIRECTORY - Auto-generated SDKs:
-               clients/
-               ├── typescript/ (openapi.ts)
-               └── python/ (toysoldiers_client/)
-               
-            7. SCRIPTS/ DIRECTORY - Deployment and management scripts:
-               scripts/
-               ├── deploy.sh, seed_posthog.py, migrate_db.sh, lint_all.sh, generate_sdk.sh
-               
-            8. DOCS/ DIRECTORY - Comprehensive documentation:
-               docs/
-               ├── ToySoldiers_Stack.yaml (copy of this file)
-               ├── ToySoldiers_API_OpenAPI.yaml (complete OpenAPI 3.1 spec)
-               ├── ToySoldiers_API_Schema.json (JSON Schema validation)
-               ├── creator_flow.md, fan_flow.md
-               └── architecture_diagram.mmd (Mermaid system diagram)
-               
-            9. .GITHUB/ DIRECTORY - Complete CI/CD workflows:
-               .github/workflows/
-               ├── validate_openapi.yml, build_backend.yml, build_frontend.yml
-               ├── deploy_staging.yml, deploy_production.yml, generate_sdk.yml, test_suite.yml
+            MANDATORY IMPLEMENTATION FROM YAML repo_tree:
             
-            IMPLEMENTATION REQUIREMENTS:
-            - Use FastAPI with async/await for all backend services
-            - Use Expo SDK 50+ for React Native apps  
-            - Use Supabase for authentication and database
-            - Use Cloudflare R2 for media storage
-            - Use Stripe Connect for payments
-            - Use LiveKit for live streaming
-            - Use PostHog for analytics
-            - Include comprehensive error handling and logging
-            - Generate working Docker configurations
-            - Create complete CI/CD workflows
-            - Include security best practices
-            - Follow the exact architecture specified in the YAML
+            READ THE YAML repo_tree SECTION AND CREATE EXACTLY WHAT IT SPECIFIES:
             
-            CRITICAL: Generate COMPLETE, WORKING, PRODUCTION-READY code - no templates, no placeholders, no TODOs.
-            Every file must be immediately runnable and deployable. Follow the YAML specification exactly.
-            Create the complete modular monorepo structure as documented in the repo_tree section.
-            "
+            1. backend/core/auth/ → main.py, routes/signup.py, routes/login.py, routes/profile.py, models/user.py, models/session.py, tests/, Dockerfile, README.md
+            2. backend/core/payments/ → main.py, routes/checkout.py, routes/webhook.py, routes/payouts.py, models/transaction.py, Dockerfile, README.md  
+            3. backend/core/analytics/ → main.py, collectors/engagement.py, collectors/content_metrics.py, collectors/monetization.py, dashboards/posthog_cohorts.json, dashboards/grafana_dash.json, Dockerfile, README.md
+            4. backend/core/content_api/ → main.py, routes/upload.py, routes/feed.py, routes/player.py, routes/analytics.py, models/content.py, models/tag.py, models/category.py, Dockerfile, README.md
+            5. backend/core/chat/ → main.py, routes/comments.py, routes/live_chat.py, routes/presence.py, models/comment.py, models/chat_message.py, websocket/supabase_realtime.py, tests/, Dockerfile, README.md
+            6. backend/creator/upload_service/ → main.py, routes/upload.py, routes/manage_content.py, routes/creator_stats.py
+            7. backend/creator/dashboard_service/ → main.py, routes/earnings.py, routes/insights.py, routes/profile_settings.py
+            8. backend/creator/profile_service/ → main.py, routes/profile.py
+            9. backend/fan/discovery_service/ → main.py, routes/feed.py, routes/recommendations.py, routes/follow.py
+            10. backend/fan/interaction_service/ → main.py, routes/comments.py, routes/tips.py, routes/subscriptions.py
+            11. backend/gateway/ → main.py, routes/proxy_auth.py, routes/proxy_content.py, routes/proxy_payments.py, nginx.conf, Dockerfile
+            12. frontend/creator_app/ → app.json, package.json, src/screens/UploadScreen.tsx, src/screens/DashboardScreen.tsx, src/screens/EarningsScreen.tsx, src/screens/ChatScreen.tsx, src/screens/ProfileScreen.tsx, src/components/VideoCard.tsx, src/components/CommentBox.tsx, src/components/TipButton.tsx, src/hooks/useSupabase.ts, src/hooks/useRealtime.ts, src/utils/api.ts, src/utils/theme.ts, README.md
+            13. frontend/fan_app/ → app.json, package.json, src/screens/HomeFeed.tsx, src/screens/PlayerScreen.tsx, src/screens/TipScreen.tsx, src/screens/CommentSection.tsx, src/screens/ProfileScreen.tsx, src/components/, src/hooks/useSupabase.ts, src/hooks/useFanAPI.ts, src/utils/, README.md
+            14. frontend/shared_ui/ → VideoCard.tsx, CommentBox.tsx, PlayerControls.tsx, TipButton.tsx
+            15. frontend/web/ → pages/index.tsx, pages/creator.tsx, pages/analytics.tsx, pages/login.tsx, package.json
+            16. database/ → schema.sql, seed_data.sql, migrations/001_init.sql, migrations/002_add_comments.sql, migrations/003_add_tips.sql, README.md
+            17. infra/ → docker-compose.yml, terraform/main.tf, terraform/variables.tf, caddy/Caddyfile, caddy/ssl/, README.md
+            18. clients/ → typescript/openapi.ts, python/toysoldiers_client/__init__.py, python/toysoldiers_client/api/, python/toysoldiers_client/models/, python/toysoldiers_client/client.py
+            19. scripts/ → deploy.sh, seed_posthog.py, migrate_db.sh, lint_all.sh, generate_sdk.sh
+            20. docs/ → ToySoldiers_Stack.yaml, ToySoldiers_API_OpenAPI.yaml, ToySoldiers_API_Schema.json, creator_flow.md, fan_flow.md, architecture_diagram.mmd
+            21. .github/workflows/ → validate_openapi.yml, build_backend.yml, build_frontend.yml, deploy_staging.yml, deploy_production.yml, generate_sdk.yml, test_suite.yml
+            22. ROOT FILES → .env.example, Makefile, README.md
             
-            Generate COMPLETE, WORKING, PRODUCTION-READY code - no templates, no placeholders, no TODOs.
-            Make everything immediately runnable and deployable.
-            " --allow-all-tools || echo "Copilot generation completed"
+            🚨 IMPLEMENTATION REQUIREMENTS FROM YAML:
+            - FastAPI + Uvicorn + Gunicorn for backend services
+            - Expo React Native for creator_app/ and fan_app/
+            - PostgreSQL schema with users, creators, content, comments, tips tables
+            - Supabase for auth and database
+            - Cloudflare R2 for media storage  
+            - Stripe Connect for payments
+            - LiveKit for live streaming
+            - PostHog for analytics
+            - Docker containers for all services
+            - Complete working code - NO PLACEHOLDERS, NO TODOS
+            
+            READ THE YAML BACKEND_SERVICES SECTION FOR EXACT API ENDPOINTS:
+            - auth_service: POST /auth/signup, POST /auth/login, GET /auth/profile, POST /auth/logout
+            - payments_service: POST /payments/checkout, POST /payments/webhook, GET /payments/payouts, GET /payments/history  
+            - analytics_service: POST /analytics/event, GET /analytics/user/:id, GET /analytics/dashboard/:creator_id
+            - content_api: GET /content/:id, POST /content/create, GET /feed/global, DELETE /content/:id, GET /stream/:id
+            - chat_service: POST /chat/comment, GET /chat/comments/:content_id, WS /chat/live/:room_id
+            
+            READ THE YAML DATABASE SECTION FOR EXACT SCHEMA:
+            - users table: id, email, password_hash, role, created_at, updated_at
+            - creators table: id, user_id, payout_account, bio, tiers, verified, created_at
+            - content table: id, creator_id, title, description, media_url, stream_url, thumbnail_url, tags, visibility, duration, file_size, created_at, updated_at
+            - comments table: id, content_id, user_id, parent_id, text, created_at
+            - tips table: id, from_user, to_creator, amount, stripe_txn, status, created_at
+            - analytics_views table: id, date, user_id, content_id, view_count, duration, device_type, referrer
+            
+            🎯 GENERATE THE COMPLETE PRODUCTION-READY TOYSOLDIERS PLATFORM EXACTLY AS SPECIFIED IN THE 1,700+ LINE YAML!
+            " --allow-all-tools
             
             # Verify generated files exist
             if [ -d "$OUT_DIR" ]; then
