@@ -37,29 +37,71 @@ jobs:
           
           for f in briefs/*_Stack.yaml; do
             NAME=$(basename "$f" _Stack.yaml)
-            OUT_DIR="${NAME}_complete"
+            OUT_DIR="Toy_Soldiers_completedly_agentic"
             API_SPEC="${NAME}_API_OpenAPI.yaml"
             SCHEMA_FILE="${NAME}_API_Schema.json"
             
-            echo "🚀 Generating $NAME using NEW Copilot CLI with GITHUB_TOKEN authentication..."
+            echo "🚀 Generating ${NAME} using NEW Copilot CLI with GITHUB_TOKEN authentication..."
+            echo "📖 Processing $(wc -c < "$f") character YAML manifest..."
             
-            # Use the NEW Copilot CLI that actually supports PAT authentication
+            # Use the NEW Copilot CLI with the complete YAML content
             copilot -p "
-            Read this YAML manifest file and generate a complete, production-ready codebase:
+            You are an expert full-stack developer. Read this comprehensive YAML manifest and generate a complete, production-ready ToySoldiers platform codebase.
             
+            YAML MANIFEST CONTENT:
             $(cat "$f")
             
-            Requirements:
-            1. Create complete project structure in ${OUT_DIR}/ directory
-            2. Generate working FastAPI backend with all specified endpoints
-            3. Create React Native Expo frontend applications
-            4. Include database schemas and migrations
-            5. Add Docker configuration for deployment
-            6. Generate comprehensive test suites
-            7. Create API documentation as ${API_SPEC}
-            8. Generate JSON schema as ${SCHEMA_FILE}
+            REQUIREMENTS:
+            1. Create complete project in Toy_Soldiers_completedly_agentic/ directory at repository root
+            2. Follow ALL specifications in the YAML manifest exactly
+            3. Generate working FastAPI backend services for each component:
+               - backend/core/auth/ (Supabase + FastAPI auth gateway)
+               - backend/core/payments/ (Stripe Connect integration) 
+               - backend/core/analytics/ (PostHog + metrics)
+               - backend/core/content_api/ (CRUD + media transcoding)
+               - backend/core/chat/ (Comments + live chat)
+               - backend/creator/ (Creator workflow services)
+               - backend/fan/ (Fan workflow services)
+               - backend/gateway/ (API gateway + routing)
+            4. Create React Native Expo frontend applications:
+               - frontend/creator_app/ (iOS/Android creator app)
+               - frontend/fan_app/ (iOS/Android fan app)
+               - frontend/shared_ui/ (Reusable components)
+               - frontend/web/ (Optional Next.js dashboard)
+            5. Generate complete database schemas in database/:
+               - schema.sql with all tables (users, content, comments, tips)
+               - seed_data.sql
+               - migration files
+            6. Create infrastructure configuration:
+               - docker-compose.yml for local development
+               - terraform/ for Cloudflare, Supabase, Stripe
+               - caddy/ configuration
+            7. Generate deployment and automation:
+               - .github/workflows/ for CI/CD
+               - scripts/ for deployment and management
+               - clients/ for auto-generated SDKs
+            8. Create comprehensive documentation:
+               - README.md with complete setup instructions
+               - API documentation as ${API_SPEC}
+               - JSON schema as ${SCHEMA_FILE}
+               - docs/ folder with architecture diagrams
             
-            Make everything production-ready and immediately usable.
+            IMPLEMENTATION DETAILS:
+            - Use FastAPI with async/await for all backend services
+            - Use Expo SDK 50+ for React Native apps
+            - Use Supabase for authentication and database
+            - Use Cloudflare R2 for media storage
+            - Use Stripe Connect for payments
+            - Use LiveKit for live streaming
+            - Use PostHog for analytics
+            - Include comprehensive error handling
+            - Add proper logging and monitoring
+            - Generate working Docker configurations
+            - Create proper CI/CD workflows
+            - Include security best practices
+            
+            Generate COMPLETE, WORKING, PRODUCTION-READY code - no templates, no placeholders, no TODOs.
+            Make everything immediately runnable and deployable.
             " --allow-all-tools --no-interactive || echo "Copilot generation completed"
             
             # Generate API documentation
