@@ -1,0 +1,73 @@
+.
+├── Makefile
+├── PROJECT_SUMMARY.md
+├── README.md
+├── backend
+│   ├── core
+│   │   ├── analytics
+│   │   ├── auth
+│   │   ├── chat
+│   │   ├── content_api
+│   │   └── payments
+│   ├── creator
+│   │   ├── dashboard_service
+│   │   ├── profile_service
+│   │   └── upload_service
+│   ├── fan
+│   │   ├── discovery_service
+│   │   └── interaction_service
+│   └── gateway
+│       └── routes
+├── clients
+│   ├── python
+│   │   └── toysoldiers_client
+│   └── typescript
+├── database
+│   ├── README.md
+│   ├── migrations
+│   │   ├── 001_init.sql
+│   │   ├── 002_add_followers.sql
+│   │   └── 003_add_subscriptions.sql
+│   ├── schema.sql
+│   └── seed_data.sql
+├── docker-compose.yml
+├── docs
+│   ├── ToySoldiers_API_OpenAPI.yaml
+│   ├── ToySoldiers_Stack.yaml
+│   ├── creator_flow.md
+│   └── fan_flow.md
+├── frontend
+│   ├── creator_app
+│   │   ├── app.json
+│   │   ├── components
+│   │   ├── package.json
+│   │   └── src
+│   ├── fan_app
+│   │   ├── app.json
+│   │   ├── components
+│   │   ├── package.json
+│   │   └── src
+│   ├── shared_ui
+│   │   ├── CommentBox.tsx
+│   │   ├── TipButton.tsx
+│   │   ├── VideoCard.tsx
+│   │   ├── components
+│   │   └── src
+│   └── web
+│       ├── components
+│       └── src
+├── infra
+│   ├── caddy
+│   │   ├── Caddyfile
+│   │   └── ssl
+│   └── terraform
+│       ├── main.tf
+│       └── variables.tf
+├── scripts
+│   ├── deploy.sh
+│   ├── generate_sdk.sh
+│   ├── lint_all.sh
+│   └── migrate_db.sh
+└── structure.txt
+
+42 directories, 29 files

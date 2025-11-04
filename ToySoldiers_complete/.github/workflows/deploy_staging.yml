@@ -1,0 +1,39 @@
+name: Deploy to Staging
+
+on:
+  push:
+    branches: [ staging ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+      - name: Deploy backend
+        run: |
+          chmod +x scripts/deploy.sh
+          ./scripts/deploy.sh staging
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_STAGING }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_STAGING }}
+      
+      - name: Run health checks
+        run: |
+          sleep 30
+          curl -f https://api-staging.toysoldiers.space/health || exit 1
+      
+      - name: Notify team
+        if: always()
+        run: |
+          STATUS=${{ job.status }}
+          curl -X POST ${{ secrets.DISCORD_WEBHOOK }} \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"Staging deployment ${STATUS}: https://staging.toysoldiers.space\"}"

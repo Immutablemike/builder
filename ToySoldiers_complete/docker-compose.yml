@@ -1,0 +1,164 @@
+version: '3.8'
+
+services:
+  auth_service:
+    build:
+      context: ./backend/core/auth
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - POSTHOG_API_KEY=${POSTHOG_API_KEY}
+    networks:
+      - toysoldiers_net
+    restart: unless-stopped
+
+  payments_service:
+    build:
+      context: ./backend/core/payments
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    environment:
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    networks:
+      - toysoldiers_net
+    restart: unless-stopped
+
+  analytics_service:
+    build:
+      context: ./backend/core/analytics
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8000"
+    environment:
+      - POSTHOG_API_KEY=${POSTHOG_API_KEY}
+      - POSTHOG_HOST=${POSTHOG_HOST}
+      - SUPABASE_URL=${SUPABASE_URL}
+    networks:
+      - toysoldiers_net
+    restart: unless-stopped
+
+  content_api:
+    build:
+      context: ./backend/core/content_api
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8000"
+    environment:
+      - CLOUDFLARE_ACCOUNT_ID=${CLOUDFLARE_ACCOUNT_ID}
+      - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
+      - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
+      - CLOUDFLARE_STREAM_TOKEN=${CLOUDFLARE_STREAM_TOKEN}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    networks:
+      - toysoldiers_net
+    restart: unless-stopped
+
+  chat_service:
+    build:
+      context: ./backend/core/chat
+      dockerfile: Dockerfile
+    ports:
+      - "8005:8000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - LIVEKIT_API_KEY=${LIVEKIT_API_KEY}
+      - LIVEKIT_API_SECRET=${LIVEKIT_API_SECRET}
+    networks:
+      - toysoldiers_net
+    restart: unless-stopped
+
+  upload_service:
+    build:
+      context: ./backend/creator/upload_service
+      dockerfile: Dockerfile
+    ports:
+      - "8006:8000"
+    environment:
+      - CLOUDFLARE_R2_ACCESS_KEY=${CLOUDFLARE_R2_ACCESS_KEY}
+      - CLOUDFLARE_R2_SECRET_KEY=${CLOUDFLARE_R2_SECRET_KEY}
+      - CLOUDFLARE_STREAM_TOKEN=${CLOUDFLARE_STREAM_TOKEN}
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+    networks:
+      - toysoldiers_net
+    restart: unless-stopped
+
+  dashboard_service:
+    build:
+      context: ./backend/creator/dashboard_service
+      dockerfile: Dockerfile
+    ports:
+      - "8007:8000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - POSTHOG_API_KEY=${POSTHOG_API_KEY}
+    networks:
+      - toysoldiers_net
+    restart: unless-stopped
+
+  discovery_service:
+    build:
+      context: ./backend/fan/discovery_service
+      dockerfile: Dockerfile
+    ports:
+      - "8008:8000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - POSTHOG_API_KEY=${POSTHOG_API_KEY}
+    networks:
+      - toysoldiers_net
+    restart: unless-stopped
+
+  interaction_service:
+    build:
+      context: ./backend/fan/interaction_service
+      dockerfile: Dockerfile
+    ports:
+      - "8009:8000"
+    environment:
+      - SUPABASE_URL=${SUPABASE_URL}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+    networks:
+      - toysoldiers_net
+    restart: unless-stopped
+
+  gateway:
+    build:
+      context: ./backend/gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - BACKEND_URL=${BACKEND_URL}
+    depends_on:
+      - auth_service
+      - payments_service
+      - content_api
+      - chat_service
+    networks:
+      - toysoldiers_net
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    networks:
+      - toysoldiers_net
+    restart: unless-stopped
+
+networks:
+  toysoldiers_net:
+    driver: bridge

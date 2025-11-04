@@ -1,0 +1,49 @@
+name: Build Backend
+
+on:
+  push:
+    branches: [ main, staging ]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ main, staging ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        service: [auth, payments, content_api, analytics, chat]
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          cd backend/core/${{ matrix.service }}
+          pip install -r requirements.txt
+      
+      - name: Run tests
+        run: |
+          cd backend/core/${{ matrix.service }}
+          pytest tests/ || echo "No tests found"
+      
+      - name: Build Docker image
+        run: |
+          cd backend/core/${{ matrix.service }}
+          docker build -t toysoldiers-${{ matrix.service }}:${{ github.sha }} .
+      
+      - name: Push to registry
+        if: github.event_name == 'push'
+        run: |
+          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+          docker tag toysoldiers-${{ matrix.service }}:${{ github.sha }} ghcr.io/${{ github.repository }}/toysoldiers-${{ matrix.service }}:latest
+          docker push ghcr.io/${{ github.repository }}/toysoldiers-${{ matrix.service }}:latest

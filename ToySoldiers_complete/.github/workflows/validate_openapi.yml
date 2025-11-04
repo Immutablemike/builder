@@ -1,0 +1,40 @@
+name: Validate OpenAPI
+
+on:
+  push:
+    paths:
+      - 'docs/ToySoldiers_API_OpenAPI.yaml'
+  pull_request:
+    paths:
+      - 'docs/ToySoldiers_API_OpenAPI.yaml'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+      
+      - name: Install OpenAPI validator
+        run: npm install -g @apidevtools/swagger-cli
+      
+      - name: Validate OpenAPI specification
+        run: swagger-cli validate docs/ToySoldiers_API_OpenAPI.yaml
+      
+      - name: Generate SDK
+        run: |
+          chmod +x scripts/generate_sdk.sh
+          ./scripts/generate_sdk.sh
+      
+      - name: Upload SDK artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: generated-sdks
+          path: |
+            clients/typescript/
+            clients/python/

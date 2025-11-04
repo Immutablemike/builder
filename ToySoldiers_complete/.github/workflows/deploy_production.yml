@@ -1,0 +1,58 @@
+name: Deploy to Production
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Verify tag format
+        run: |
+          if [[ ! "${{ github.ref }}" =~ ^refs/tags/v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Invalid tag format. Use vX.Y.Z"
+            exit 1
+          fi
+      
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.7.0
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+      
+      - name: Deploy backend
+        run: |
+          chmod +x scripts/deploy.sh
+          ./scripts/deploy.sh production
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL_PRODUCTION }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY_PRODUCTION }}
+      
+      - name: Run smoke tests
+        run: |
+          sleep 30
+          curl -f https://api.toysoldiers.space/health || exit 1
+          curl -f https://app.toysoldiers.space || exit 1
+      
+      - name: Create GitHub release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      
+      - name: Notify team
+        if: always()
+        run: |
+          STATUS=${{ job.status }}
+          curl -X POST ${{ secrets.DISCORD_WEBHOOK }} \
+            -H "Content-Type: application/json" \
+            -d "{\"content\": \"🚀 Production deployment ${STATUS}: ${{ github.ref }}\"}"
