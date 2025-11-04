@@ -31,6 +31,10 @@ jobs:
           # Install the NEW standalone Copilot CLI
           npm install -g @github/copilot
           
+          # Configure Trusted Environment for headless CI/CD
+          mkdir -p ~/.copilot
+          echo '{"trusted_folders": ["/github/workspace"]}' > ~/.copilot/config.json
+          
           for f in briefs/*_Stack.yaml; do
             NAME=$(basename "$f" _Stack.yaml)
             OUT_DIR="${NAME}_complete"
@@ -45,9 +49,9 @@ jobs:
             echo "🚀 Generating $OUT_DIR for project: $PROJECT_NAME"
             echo "📖 Processing $(wc -c < "$f") character YAML manifest..."
             
-            # Clean Copilot context and generate with workspace isolation
+            # Generate with NEW Copilot CLI in headless mode
             cd "$OUT_DIR"
-            copilot -p "You are a YAML-to-Codebase Factory. Generate a complete codebase for project '$PROJECT_NAME' based on this YAML specification. Write all files in current directory. No placeholders, no TODO comments. YAML spec: $(cat ../$f)" --allow-tool "fs(read,write)"
+            copilot -p "You are a YAML-to-Codebase Factory. Generate a complete codebase for project '$PROJECT_NAME' based on this YAML specification. Write all files in current directory. No placeholders, no TODO comments. YAML spec: $(cat ../$f)" --allow-all-tools --no-interactive
             cd ..
             
             # Verify and report generation results
